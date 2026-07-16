@@ -11,6 +11,7 @@ export default function AhkiliPage() {
   const [profile, setProfile] = useState(null);
   const router = useRouter();
 
+  // Load the current user profile on page load
   useEffect(() => {
     async function loadProfile() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -27,13 +28,6 @@ export default function AhkiliPage() {
     loadProfile();
   }, [router]);
 
-  const getInitials = (name) => {
-    if (!name) return 'U';
-    const splitName = name.trim().split(' ');
-    if (splitName.length === 1) return splitName[0][0].toUpperCase();
-    return (splitName[0][0] + splitName[splitName.length - 1][0]).toUpperCase();
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setStatus('Envoi en cours...');
@@ -46,41 +40,23 @@ export default function AhkiliPage() {
 
     if (error) {
       setStatus('Erreur lors de l\'envoi.');
+      console.error(error);
     } else {
       setStatus('Message envoyé avec succès à la mission !');
       setMessage('');
-      setTimeout(() => setStatus(''), 5000); 
+      setTimeout(() => setStatus(''), 5000); // Clear success message after 5s
     }
   };
 
   if (!profile) return <div className="min-h-screen flex items-center justify-center"><div className="animate-pulse text-xl font-bold">Chargement...</div></div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8 relative">
-      <div className="max-w-4xl mx-auto space-y-8">
+    <div className="min-h-screen bg-gray-50 p-8">
+      <div className="max-w-3xl mx-auto space-y-8">
         
-        {/* Dynamic Profile Header */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
-          <div>
-            <Link href="/dashboard" className="text-sm font-bold text-blue-600 hover:underline mb-1 inline-block">← Retour au tableau de bord</Link>
-            <h1 className="text-2xl font-extrabold text-gray-900 font-arabic">أحكيلي</h1>
-          </div>
-          
-          <div className="flex items-center gap-6">
-            <div className="hidden md:block text-right">
-              <p className="font-bold text-gray-900 text-lg">{profile?.full_name || 'Utilisateur'}</p>
-              <p className="text-sm font-medium text-gray-500">
-                {profile?.poste} 
-                {profile?.role === 'chef_club' && profile?.club && (
-                  <span className="text-indigo-600 font-bold"> • {profile.club}</span>
-                )}
-              </p>
-            </div>
-            <div className="h-14 w-14 rounded-full bg-indigo-600 text-white shadow-md flex items-center justify-center font-extrabold text-xl border-2 border-indigo-200 shrink-0">
-              {getInitials(profile?.full_name)}
-            </div>
-          </div>
-        </div>
+        <Link href="/dashboard" className="inline-block px-4 py-2 bg-white border border-gray-200 rounded-lg shadow-sm font-bold hover:bg-gray-50 transition">
+          ← Retour au tableau de bord
+        </Link>
 
         {/* Logo Placement */}
         <div className="flex justify-center mb-8">
@@ -101,11 +77,11 @@ export default function AhkiliPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Votre Nom</label>
-              <input type="text" value={profile?.full_name || ''} disabled className="w-full p-3 bg-gray-100 text-gray-700 font-medium rounded-lg border-0" />
+              <input type="text" value={profile.full_name} disabled className="w-full p-3 bg-gray-100 text-gray-700 font-medium rounded-lg border-0" />
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Votre Club</label>
-              <input type="text" value={profile?.club || ''} disabled className="w-full p-3 bg-gray-100 text-gray-700 font-medium rounded-lg border-0" />
+              <input type="text" value={profile.club} disabled className="w-full p-3 bg-gray-100 text-gray-700 font-medium rounded-lg border-0" />
             </div>
           </div>
 
