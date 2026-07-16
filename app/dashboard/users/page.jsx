@@ -86,10 +86,26 @@ export default function UserManagementPage() {
     }
   };
 
+  // UPDATED: Now routes through our secure API to fully annihilate the user
   const handleDelete = async (id, name) => {
-    if (!window.confirm(`Supprimer le profil de ${name} ?`)) return;
-    const { error } = await supabase.from('profiles').delete().eq('id', id);
-    if (!error) setUsers(users.filter(u => u.id !== id));
+    if (!window.confirm(`Êtes-vous sûr de vouloir supprimer définitivement le profil de ${name} ?`)) return;
+    
+    try {
+      const response = await fetch('/api/admin/delete-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      });
+      
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+      
+      // Remove from UI only after the backend confirms actual deletion
+      setUsers(users.filter(u => u.id !== id));
+      
+    } catch (err) {
+      alert(`Erreur de suppression: ${err.message}`);
+    }
   };
 
   const filteredClubs = CLUBS.filter(c => c.toLowerCase().includes(clubSearch.toLowerCase()));
