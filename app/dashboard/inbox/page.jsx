@@ -1,112 +1,176 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 
-export default function AhkiliPage() {
-  const [message, setMessage] = useState('');
-  const [status, setStatus] = useState('');
+export default function InboxPage() {
   const [profile, setProfile] = useState(null);
+  const [actions, setActions] = useState([]);
+  
+  // Chat State
+  const [messages, setMessages] = useState([]);
+  const [activeChatClub, setActiveChatClub] = useState(null);
+  const [replyText, setReplyText] = useState('');
+  
   const router = useRouter();
 
-  // Load the current user profile on page load
   useEffect(() => {
-    async function loadProfile() {
+    async function loadData() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return router.push('/');
 
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      
-      setProfile(data);
+      const { data: userProfile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      setProfile(userProfile);
+
+      if (userProfile?.role === 'comite_national' || userProfile?.role === 'chef_mission_inter') {
+        const { data: actionsData } = await supabase.from('submitted_actions').select('*').order('created_at', { ascending: false });
+        setActions(actionsData || []);
+
+        if (userProfile?.role === 'chef_mission_inter') {
+          const { data: msgs } = await supabase.from('ahkili_messages').select('*').order('created_at', { ascending: true });
+          setMessages(msgs || []);
+        }
+      } else {
+        router.push('/dashboard');
+      }
     }
-    loadProfile();
+    loadData();
   }, [router]);
 
-  const handleSubmit = async (e) => {
+  // Extract unique clubs that have sent messages
+  const clubsWithMessages = [...new Set(messages.map(m => m.club))];
+  // Filter messages for the currently opened chat window
+  const activeChatMessages = messages.filter(m => m.club === activeChatClub);
+
+  const handleReply = async (e) => {
     e.preventDefault();
-    setStatus('Envoi en cours...');
+    if (!replyText.trim() || !activeChatClub) return;
 
-    const { error } = await supabase.from('ahkili_messages').insert([{
-      user_id: profile.id,
-      club: profile.club,
-      message: message
-    }]);
+    const msgData = {
+      user_id: profile.id, // Mission's ID
+      club: activeChatClub, // Target club
+      message: replyText,
+      is_mission_reply: true // True means it came from the mission
+    };
 
-    if (error) {
-      setStatus('Erreur lors de l\'envoi.');
-      console.error(error);
-    } else {
-      setStatus('Message envoyé avec succès à la mission !');
-      setMessage('');
-      setTimeout(() => setStatus(''), 5000); // Clear success message after 5s
+    const { error } = await supabase.from('ahkili_messages').insert([msgData]);
+    if (!error) {
+      setMessages([...messages, { ...msgData, created_at: new Date().toISOString() }]);
+      setReplyText('');
     }
   };
 
-  if (!profile) return <div className="min-h-screen flex items-center justify-center"><div className="animate-pulse text-xl font-bold">Chargement...</div></div>;
+  const getInitials = (name) => {
+    if (!name) return 'U';
+    const splitName = name.trim().split(' ');
+    return (splitName.length === 1 ? splitName[0][0] : splitName[0][0] + splitName[splitName.length - 1][0]).toUpperCase();
+  };
+
+  if (!profile) return <div className="min-h-screen flex items-center justify-center"><div className="animate-pulse font-bold">Chargement...</div></div>;
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-3xl mx-auto space-y-8">
+      <div className="max-w-6xl mx-auto space-y-8">
         
-        <Link href="/dashboard" className="inline-block px-4 py-2 bg-white border border-gray-200 rounded-lg shadow-sm font-bold hover:bg-gray-50 transition">
-          ← Retour au tableau de bord
-        </Link>
-
-        {/* Logo Placement */}
-        <div className="flex justify-center mb-8">
-          <Image 
-            src="/logo.png" 
-            alt="Logo" 
-            width={200} 
-            height={80} 
-            className="object-contain"
-          />
+        {/* Header */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border flex justify-between items-center">
+          <div>
+            <Link href="/dashboard" className="text-sm font-bold text-blue-600 hover:underline mb-1 inline-block">← Retour au tableau de bord</Link>
+            <h1 className="text-2xl font-extrabold text-gray-900">Boîte de Réception Centrale</h1>
+          </div>
+          <div className="flex items-center gap-4 hidden sm:flex">
+            <div className="text-right">
+              <p className="font-bold text-gray-900">{profile.full_name}</p>
+              <p className="text-sm text-gray-500">{profile.poste}</p>
+            </div>
+            <div className="h-12 w-12 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">
+              {getInitials(profile.full_name)}
+            </div>
+          </div>
         </div>
 
-        <h1 className="text-7xl font-bold text-center mb-12 text-indigo-600 font-arabic tracking-tight">
-          أحكيلي
-        </h1>
-
-        <form onSubmit={handleSubmit} className="space-y-6 bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Votre Nom</label>
-              <input type="text" value={profile.full_name} disabled className="w-full p-3 bg-gray-100 text-gray-700 font-medium rounded-lg border-0" />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Votre Club</label>
-              <input type="text" value={profile.club} disabled className="w-full p-3 bg-gray-100 text-gray-700 font-medium rounded-lg border-0" />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-bold text-gray-900 mb-2">Réclamations, demandes, questions...</label>
-            <textarea 
-              rows="6"
-              required
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              className="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition resize-none"
-              placeholder="Écrivez votre message à la mission ici en toute confidentialité..."
-            />
-          </div>
-
-          <button type="submit" className="w-full bg-indigo-600 text-white p-4 rounded-xl font-bold text-lg hover:bg-indigo-700 transition shadow-md">
-            Envoyer à la mission
-          </button>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
-          {status && (
-            <div className={`p-4 rounded-lg font-bold text-center ${status.includes('succès') ? 'bg-green-50 text-green-700' : 'bg-blue-50 text-blue-700'}`}>
-              {status}
+          {/* LEFT COLUMN: Actions Soumises */}
+          <div className="bg-white rounded-2xl shadow-sm border overflow-hidden flex flex-col h-[650px]">
+            <div className="bg-green-600 px-6 py-4 shrink-0">
+              <h2 className="text-lg font-bold text-white">📥 Actions Soumises</h2>
+            </div>
+            <div className="p-6 overflow-y-auto flex-1 space-y-4 bg-gray-50/50">
+              {actions.length === 0 ? <p className="text-gray-500 italic">Aucune action soumise.</p> : actions.map((action) => (
+                <div key={action.id} className="p-4 border rounded-xl bg-white shadow-sm">
+                  <span className="text-xs font-bold bg-green-100 text-green-700 px-2 py-1 rounded-full">{action.journee_name}</span>
+                  <h3 className="text-md font-bold mt-2">{action.nom_action}</h3>
+                  <p className="text-sm font-bold text-blue-600 mb-2">{action.club}</p>
+                  <p className="text-sm text-gray-600 mb-3">{action.description}</p>
+                  <a href={action.social_link} target="_blank" rel="noreferrer" className="text-xs font-bold text-blue-600 hover:underline">Voir le lien ↗</a>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN: Ahkili Chat Hub (Only Chef Mission) */}
+          {profile.role === 'chef_mission_inter' && (
+            <div className="bg-white rounded-2xl shadow-sm border overflow-hidden flex flex-col h-[650px]">
+              
+              {/* If no club is selected for chat, show the list of conversations */}
+              {!activeChatClub ? (
+                <>
+                  <div className="bg-indigo-600 px-6 py-4 shrink-0">
+                    <h2 className="text-lg font-bold text-white font-arabic">💬 Messages أحكيلي</h2>
+                  </div>
+                  <div className="p-6 overflow-y-auto flex-1 bg-gray-50/50">
+                    {clubsWithMessages.length === 0 ? (
+                      <p className="text-gray-500 italic">Aucun club ne vous a contacté.</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {clubsWithMessages.map((club, idx) => (
+                          <button key={idx} onClick={() => setActiveChatClub(club)} className="w-full text-left p-4 bg-white border rounded-xl shadow-sm hover:border-indigo-400 transition flex justify-between items-center group">
+                            <span className="font-bold text-gray-800">{club}</span>
+                            <span className="text-indigo-600 font-bold group-hover:translate-x-1 transition">Ouvrir →</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                /* Chat Interface for Selected Club */
+                <>
+                  <div className="bg-indigo-600 px-4 py-3 shrink-0 flex items-center gap-3">
+                    <button onClick={() => setActiveChatClub(null)} className="text-white hover:bg-indigo-500 p-2 rounded-lg font-bold text-sm">← Retour</button>
+                    <h2 className="text-md font-bold text-white truncate">Discussion avec {activeChatClub}</h2>
+                  </div>
+                  
+                  <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-gray-50/50">
+                    {activeChatMessages.map((msg, idx) => (
+                      <div key={idx} className={`flex ${msg.is_mission_reply ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-[85%] p-3 rounded-2xl ${msg.is_mission_reply ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white border text-gray-800 rounded-tl-none shadow-sm'}`}>
+                          <p className="text-sm">{msg.message}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <form onSubmit={handleReply} className="p-3 bg-white border-t flex gap-2 items-end">
+                    <textarea 
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                      placeholder="Répondre au club..."
+                      className="flex-1 p-2 border rounded-lg resize-none outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                      rows="2"
+                    />
+                    <button type="submit" className="px-4 py-3 bg-indigo-600 text-white font-bold text-sm rounded-lg hover:bg-indigo-700 transition">
+                      Envoyer
+                    </button>
+                  </form>
+                </>
+              )}
             </div>
           )}
-        </form>
+
+        </div>
       </div>
     </div>
   );

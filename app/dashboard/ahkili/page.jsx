@@ -3,134 +3,115 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 
-export default function AhkiliPage() {
-  const [message, setMessage] = useState('');
-  const [status, setStatus] = useState('');
+export default function AhkiliChatPage() {
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
   const [profile, setProfile] = useState(null);
   const router = useRouter();
 
   useEffect(() => {
-    async function loadProfile() {
+    async function loadChat() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return router.push('/');
 
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      
-      setProfile(data);
+      const { data: userProfile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      setProfile(userProfile);
+
+      // Fetch chat history for this specific club
+      if (userProfile?.club) {
+        const { data: chatHistory } = await supabase
+          .from('ahkili_messages')
+          .select('*')
+          .eq('club', userProfile.club)
+          .order('created_at', { ascending: true });
+        setMessages(chatHistory || []);
+      }
     }
-    loadProfile();
+    loadChat();
   }, [router]);
+
+  const handleSend = async (e) => {
+    e.preventDefault();
+    if (!newMessage.trim()) return;
+
+    const msgData = {
+      user_id: profile.id,
+      club: profile.club,
+      message: newMessage,
+      is_mission_reply: false // False means it came from the club
+    };
+
+    const { error } = await supabase.from('ahkili_messages').insert([msgData]);
+    
+    if (!error) {
+      setMessages([...messages, { ...msgData, created_at: new Date().toISOString() }]);
+      setNewMessage('');
+    }
+  };
 
   const getInitials = (name) => {
     if (!name) return 'U';
     const splitName = name.trim().split(' ');
-    if (splitName.length === 1) return splitName[0][0].toUpperCase();
-    return (splitName[0][0] + splitName[splitName.length - 1][0]).toUpperCase();
+    return (splitName.length === 1 ? splitName[0][0] : splitName[0][0] + splitName[splitName.length - 1][0]).toUpperCase();
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setStatus('Envoi en cours...');
-
-    const { error } = await supabase.from('ahkili_messages').insert([{
-      user_id: profile.id,
-      club: profile.club,
-      message: message
-    }]);
-
-    if (error) {
-      setStatus('Erreur lors de l\'envoi.');
-    } else {
-      setStatus('Message envoyé avec succès à la mission !');
-      setMessage('');
-      setTimeout(() => setStatus(''), 5000); 
-    }
-  };
-
-  if (!profile) return <div className="min-h-screen flex items-center justify-center"><div className="animate-pulse text-xl font-bold">Chargement...</div></div>;
+  if (!profile) return <div className="min-h-screen flex items-center justify-center"><div className="animate-pulse font-bold">Chargement...</div></div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8 relative">
-      <div className="max-w-4xl mx-auto space-y-8">
+    <div className="min-h-screen bg-gray-50 p-8">
+      <div className="max-w-4xl mx-auto space-y-6">
         
-        {/* Dynamic Profile Header */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
+        {/* Header */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border flex justify-between items-center">
           <div>
-            <Link href="/dashboard" className="text-sm font-bold text-blue-600 hover:underline mb-1 inline-block">← Retour au tableau de bord</Link>
-            <h1 className="text-2xl font-extrabold text-gray-900 font-arabic">أحكيلي</h1>
+            <Link href="/dashboard" className="text-sm font-bold text-indigo-600 hover:underline mb-1 inline-block">← Retour</Link>
+            <h1 className="text-2xl font-extrabold text-gray-900 font-arabic">أحكيلي (Chat Direct)</h1>
           </div>
-          
-          <div className="flex items-center gap-6">
-            <div className="hidden md:block text-right">
-              <p className="font-bold text-gray-900 text-lg">{profile?.full_name || 'Utilisateur'}</p>
-              <p className="text-sm font-medium text-gray-500">
-                {profile?.poste} 
-                {profile?.role === 'chef_club' && profile?.club && (
-                  <span className="text-indigo-600 font-bold"> • {profile.club}</span>
-                )}
-              </p>
+          <div className="flex items-center gap-4">
+            <div className="text-right hidden sm:block">
+              <p className="font-bold">{profile.full_name}</p>
+              <p className="text-sm text-gray-500">{profile.club}</p>
             </div>
-            <div className="h-14 w-14 rounded-full bg-indigo-600 text-white shadow-md flex items-center justify-center font-extrabold text-xl border-2 border-indigo-200 shrink-0">
-              {getInitials(profile?.full_name)}
+            <div className="h-12 w-12 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold">
+              {getInitials(profile.full_name)}
             </div>
           </div>
         </div>
 
-        {/* Logo Placement */}
-        <div className="flex justify-center mb-8">
-          <Image 
-            src="/logo.png" 
-            alt="Logo" 
-            width={200} 
-            height={80} 
-            className="object-contain"
-          />
-        </div>
-
-        <h1 className="text-7xl font-bold text-center mb-12 text-indigo-600 font-arabic tracking-tight">
-          أحكيلي
-        </h1>
-
-        <form onSubmit={handleSubmit} className="space-y-6 bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Votre Nom</label>
-              <input type="text" value={profile?.full_name || ''} disabled className="w-full p-3 bg-gray-100 text-gray-700 font-medium rounded-lg border-0" />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Votre Club</label>
-              <input type="text" value={profile?.club || ''} disabled className="w-full p-3 bg-gray-100 text-gray-700 font-medium rounded-lg border-0" />
-            </div>
+        {/* Chat Window */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col h-[600px]">
+          <div className="flex-1 p-6 overflow-y-auto space-y-4 bg-gray-50/50">
+            {messages.length === 0 ? (
+              <p className="text-center text-gray-400 mt-10">Envoyez votre premier message à la mission. Tout est confidentiel.</p>
+            ) : (
+              messages.map((msg, idx) => (
+                <div key={idx} className={`flex ${msg.is_mission_reply ? 'justify-start' : 'justify-end'}`}>
+                  <div className={`max-w-[75%] p-4 rounded-2xl ${msg.is_mission_reply ? 'bg-white border text-gray-800 rounded-tl-none' : 'bg-indigo-600 text-white rounded-tr-none shadow-md'}`}>
+                    <p className="text-sm">{msg.message}</p>
+                    <span className={`text-[10px] mt-2 block ${msg.is_mission_reply ? 'text-gray-400' : 'text-indigo-200'}`}>
+                      {new Date(msg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
 
-          <div>
-            <label className="block text-sm font-bold text-gray-900 mb-2">Réclamations, demandes, questions...</label>
+          {/* Input Area */}
+          <form onSubmit={handleSend} className="p-4 bg-white border-t flex gap-4 items-end rounded-b-2xl">
             <textarea 
-              rows="6"
-              required
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              className="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition resize-none"
-              placeholder="Écrivez votre message à la mission ici en toute confidentialité..."
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="Écrivez votre message..."
+              className="flex-1 p-3 border rounded-xl resize-none outline-none focus:ring-2 focus:ring-indigo-500 max-h-32"
+              rows="2"
             />
-          </div>
-
-          <button type="submit" className="w-full bg-indigo-600 text-white p-4 rounded-xl font-bold text-lg hover:bg-indigo-700 transition shadow-md">
-            Envoyer à la mission
-          </button>
-          
-          {status && (
-            <div className={`p-4 rounded-lg font-bold text-center ${status.includes('succès') ? 'bg-green-50 text-green-700' : 'bg-blue-50 text-blue-700'}`}>
-              {status}
-            </div>
-          )}
-        </form>
+            <button type="submit" className="px-6 py-4 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition">
+              Envoyer
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );
