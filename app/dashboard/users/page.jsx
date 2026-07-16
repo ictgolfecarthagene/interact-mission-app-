@@ -31,6 +31,7 @@ export default function UserManagementPage() {
       const { data: userProfile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
       if (userProfile?.role !== 'comite_national' && userProfile?.role !== 'chef_mission_inter') return router.push('/dashboard');
       setProfile(userProfile);
+      
       const { data: allUsers } = await supabase.from('profiles').select('*').order('role', { ascending: true });
       setUsers(allUsers || []);
       setLoading(false);
@@ -128,7 +129,9 @@ export default function UserManagementPage() {
                   <tr key={u.id} className="hover:bg-white/50 transition-colors">
                     <td className="p-5"><p className="font-bold text-slate-900">{u.full_name}</p><p className="text-xs font-medium text-slate-500 mt-1">{u.email}</p></td>
                     <td className="p-5">
-                      <span className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase border ${u.role === 'chef_club' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : 'bg-teal-50 text-teal-700 border-teal-100'}`}>{u.role.replace(/_/g, ' ')}</span>
+                      <span className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase border ${u.role === 'chef_club' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : 'bg-teal-50 text-teal-700 border-teal-100'}`}>
+                        {u.role === 'chef_mission_inter' ? 'Mission des actions internationales' : u.role.replace(/_/g, ' ')}
+                      </span>
                       <p className="text-xs text-slate-500 mt-2 font-semibold">{u.poste}</p>
                     </td>
                     <td className="p-5 font-bold text-slate-700">{u.club || '—'}</td>
@@ -159,7 +162,9 @@ export default function UserManagementPage() {
                  <div>
                    <label className="block text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-2">Type d'accès</label>
                    <select value={formData.role} onChange={(e) => { setFormData({...formData, role: e.target.value, poste: e.target.value === 'chef_club' ? 'Chef des actions internationales' : POSTS_NATIONAUX[0], club: ''}); setClubSearch(''); }} className="w-full p-4 bg-white/50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold shadow-sm transition-all">
-                     <option value="chef_club">Club Local</option><option value="comite_national">Comité National</option><option value="chef_mission_inter">Mission Inter</option>
+                     <option value="chef_club">Club Local</option>
+                     <option value="comite_national">Comité National</option>
+                     <option value="chef_mission_inter">Mission des actions internationales</option>
                    </select>
                  </div>
                </div>
