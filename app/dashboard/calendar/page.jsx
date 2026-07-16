@@ -18,6 +18,7 @@ export default function CalendarUI() {
   const [showModal, setShowModal] = useState(false);
   const [actionsOnSelectedDate, setActionsOnSelectedDate] = useState([]);
   
+  // Form State
   const [selectedJournee, setSelectedJournee] = useState('');
   const [customJournee, setCustomJournee] = useState('');
   const [nomAction, setNomAction] = useState('');
@@ -110,17 +111,22 @@ export default function CalendarUI() {
   if (!profile) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><div className="animate-pulse font-bold text-xl text-blue-400">Chargement...</div></div>;
 
   return (
-    <div className="min-h-screen bg-slate-50 p-8 font-sans relative">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen bg-slate-50 p-4 sm:p-8 relative font-sans overflow-hidden">
+      
+      {/* Liquid Glass Animated Blobs */}
+      <div className="fixed top-[-10%] left-[-10%] w-[500px] h-[500px] bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob z-0 pointer-events-none"></div>
+      <div className="fixed top-[-10%] right-[-10%] w-[500px] h-[500px] bg-teal-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000 z-0 pointer-events-none"></div>
+
+      <div className="max-w-7xl mx-auto space-y-8 relative z-10">
         
         {/* Modern Header */}
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4 bg-gradient-to-r from-white to-slate-50">
+        <div className="bg-white/70 backdrop-blur-2xl p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/50 flex flex-col md:flex-row justify-between items-center gap-4">
           <div>
-            <Link href="/dashboard" className="text-sm font-bold text-blue-600 hover:text-blue-700 transition mb-1 inline-block">← Retour au hub</Link>
+            <Link href="/dashboard" className="text-sm font-bold text-blue-600 hover:text-blue-800 transition mb-1 inline-block">← Retour au hub</Link>
             <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Calendrier des Actions</h1>
           </div>
           <div className="flex items-center gap-6">
-            <input type="text" placeholder="Rechercher une journée..." className="px-5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl shadow-inner focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none w-64 transition-all" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            <input type="text" placeholder="Rechercher une journée..." className="px-5 py-2.5 bg-white/60 border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none w-64 transition-all" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             <div className="h-10 w-px bg-slate-200 hidden md:block"></div>
             <div className="hidden md:block text-right">
               <p className="font-bold text-slate-900 text-lg">{profile.full_name}</p>
@@ -131,28 +137,28 @@ export default function CalendarUI() {
         </div>
 
         {searchResults.length > 0 && (
-          <div className="bg-white p-5 rounded-2xl shadow-lg shadow-slate-200/50 border border-blue-100">
+          <div className="bg-white/80 backdrop-blur-md p-5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-blue-100">
             <h3 className="font-bold text-slate-700 mb-3 tracking-wide">Résultats de recherche :</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {searchResults.map((j, idx) => <div key={idx} className="p-3 bg-blue-50 text-blue-700 text-sm rounded-xl font-bold border border-blue-100">{j.date} : {j.name}</div>)}
+              {searchResults.map((j, idx) => <div key={idx} className="p-3 bg-blue-50/80 text-blue-700 text-sm rounded-xl font-bold border border-blue-100">{j.date} : {j.name}</div>)}
             </div>
           </div>
         )}
 
-        {/* Premium Calendar Grid */}
-        <div className="bg-white rounded-3xl shadow-lg shadow-slate-200/50 border border-slate-200 overflow-hidden">
-          <div className="flex justify-between items-center bg-slate-900 text-white px-8 py-5">
+        {/* Premium Glass Calendar Grid */}
+        <div className="bg-white/70 backdrop-blur-2xl rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/50 overflow-hidden">
+          <div className="flex justify-between items-center bg-slate-900/90 text-white px-8 py-5 backdrop-blur-md">
             <button onClick={prevMonth} className="px-4 py-2 hover:bg-slate-800 rounded-xl font-bold transition-colors">← Précédent</button>
             <h2 className="text-2xl font-extrabold tracking-wide">{monthNames[month]} {year}</h2>
             <button onClick={nextMonth} className="px-4 py-2 hover:bg-slate-800 rounded-xl font-bold transition-colors">Suivant →</button>
           </div>
 
-          <div className="grid grid-cols-7 bg-slate-50 border-b border-slate-200">
+          <div className="grid grid-cols-7 bg-white/40 border-b border-slate-200/50">
             {dayNames.map((day) => <div key={day} className="py-4 text-center text-xs font-extrabold text-slate-500 uppercase tracking-widest">{day}</div>)}
           </div>
 
-          <div className="grid grid-cols-7 border-l border-slate-100">
-            {Array.from({ length: firstDay }).map((_, i) => <div key={`empty-${i}`} className="min-h-[140px] border-r border-b border-slate-100 bg-slate-50/50"></div>)}
+          <div className="grid grid-cols-7 border-l border-slate-200/30">
+            {Array.from({ length: firstDay }).map((_, i) => <div key={`empty-${i}`} className="min-h-[140px] border-r border-b border-slate-200/50 bg-slate-50/30"></div>)}
 
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const day = i + 1;
@@ -161,7 +167,7 @@ export default function CalendarUI() {
               const hasEvents = JOURNEES_INTERNATIONALES.some(j => j.date === dateStr);
 
               return (
-                <div key={day} onClick={() => handleDayClick(day)} className="min-h-[140px] border-r border-b border-slate-100 p-3 flex flex-col cursor-pointer hover:bg-blue-50/50 transition-colors group">
+                <div key={day} onClick={() => handleDayClick(day)} className="min-h-[140px] border-r border-b border-slate-200/50 p-3 flex flex-col cursor-pointer hover:bg-white/60 transition-colors group bg-white/20">
                   <div className="flex justify-between items-start mb-2">
                     <span className={`text-sm font-extrabold w-8 h-8 flex items-center justify-center rounded-full transition-colors ${hasEvents && daysActions.length === 0 ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 group-hover:text-blue-600'}`}>{day}</span>
                   </div>
@@ -169,14 +175,14 @@ export default function CalendarUI() {
                   {/* Visual Tags - ARCHIVE (Gray), REMARQUE (Green), PENDING (Blue) */}
                   <div className="flex flex-col gap-1.5 mt-1">
                     {daysActions.map(action => {
-                      let tagStyle = 'bg-blue-500 text-white';
+                      let tagStyle = 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white border border-blue-400';
                       let icon = '';
                       
                       if (action.archived) {
-                        tagStyle = 'bg-slate-200 text-slate-500 opacity-80';
+                        tagStyle = 'bg-slate-100 text-slate-500 border border-slate-200 shadow-none';
                         icon = '📦 ';
                       } else if (action.remarque) {
-                        tagStyle = 'bg-emerald-500 text-white';
+                        tagStyle = 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white border border-emerald-400';
                       }
 
                       return (
@@ -195,17 +201,17 @@ export default function CalendarUI() {
 
       {/* Modern Glassmorphism Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-opacity">
-          <div className="bg-white p-8 rounded-3xl max-w-xl w-full shadow-2xl relative max-h-[90vh] overflow-y-auto border border-slate-200">
-             <button onClick={() => setShowModal(false)} className="absolute top-5 right-5 h-8 w-8 bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-900 rounded-full flex items-center justify-center font-bold transition-colors">✕</button>
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-all">
+          <div className="bg-white/90 backdrop-blur-2xl p-8 rounded-[2rem] max-w-xl w-full shadow-[0_20px_60px_rgb(0,0,0,0.1)] border border-white/60 relative max-h-[90vh] overflow-y-auto">
+             <button onClick={() => setShowModal(false)} className="absolute top-5 right-5 h-8 w-8 bg-slate-100/50 text-slate-500 hover:bg-slate-200 hover:text-slate-900 rounded-full flex items-center justify-center font-bold transition-colors">✕</button>
              
              {/* COMITE NATIONAL VIEW */}
              {profile.role === 'comite_national' && (
                <div>
-                 <h2 className="text-2xl font-extrabold mb-6 text-teal-800 border-b border-slate-100 pb-3">Actions du {selectedDateStr}</h2>
+                 <h2 className="text-2xl font-extrabold mb-6 text-teal-800 border-b border-slate-200 pb-3">Actions du {selectedDateStr}</h2>
                  {actionsOnSelectedDate.length === 0 ? <p className="text-slate-400 font-medium italic text-center py-6">Aucune action trouvée.</p> : actionsOnSelectedDate.map(a => (
-                   <div key={a.id} className={`p-5 rounded-2xl border mb-4 relative ${a.archived ? 'bg-slate-50 border-slate-200 opacity-75' : 'bg-white border-slate-200 shadow-sm'}`}>
-                     {a.archived && <span className="absolute top-4 right-4 text-xs font-bold bg-slate-200 text-slate-600 px-2 py-1 rounded-lg">📦 Archivé</span>}
+                   <div key={a.id} className={`p-5 rounded-2xl border mb-4 relative ${a.archived ? 'bg-slate-50/50 border-slate-200 opacity-75' : 'bg-white border-slate-200 shadow-sm'}`}>
+                     {a.archived && <span className="absolute top-4 right-4 text-[10px] font-bold bg-slate-200 text-slate-600 px-2 py-1 rounded-lg uppercase tracking-wider">📦 Archivé</span>}
                      <p className="font-bold text-slate-900 text-lg pr-20">{a.nom_action}</p>
                      <p className="text-sm font-bold text-indigo-600 mb-2">{a.club}</p>
                      <p className="text-xs font-bold text-teal-700 bg-teal-50 px-2 py-1 rounded inline-block mb-4 border border-teal-100">{a.journee_name}</p>
@@ -218,17 +224,17 @@ export default function CalendarUI() {
              {/* CHEF MISSION VIEW */}
              {profile.role === 'chef_mission_inter' && (
                <div>
-                 <h2 className="text-2xl font-extrabold mb-6 text-blue-800 border-b border-slate-100 pb-3">Détails ({selectedDateStr})</h2>
+                 <h2 className="text-2xl font-extrabold mb-6 text-blue-800 border-b border-slate-200 pb-3">Détails ({selectedDateStr})</h2>
                  {actionsOnSelectedDate.length === 0 ? <p className="text-slate-400 font-medium italic text-center py-6">Aucune action trouvée.</p> : actionsOnSelectedDate.map(a => (
-                   <div key={a.id} className={`p-5 rounded-2xl border mb-4 relative ${a.archived ? 'bg-slate-50 border-slate-200 opacity-75' : 'bg-white border-slate-200 shadow-sm'}`}>
-                     {a.archived && <span className="absolute top-4 right-4 text-xs font-bold bg-slate-200 text-slate-600 px-2 py-1 rounded-lg">📦 Archivé</span>}
+                   <div key={a.id} className={`p-5 rounded-2xl border mb-4 relative ${a.archived ? 'bg-slate-50/50 border-slate-200 opacity-75' : 'bg-white border-slate-200 shadow-sm'}`}>
+                     {a.archived && <span className="absolute top-4 right-4 text-[10px] font-bold bg-slate-200 text-slate-600 px-2 py-1 rounded-lg uppercase tracking-wider">📦 Archivé</span>}
                      <p className="font-bold text-slate-900 text-lg pr-20">{a.nom_action}</p>
                      <p className="text-sm font-bold text-indigo-600 mb-3">{a.club}</p>
                      <span className="text-[10px] bg-blue-50 text-blue-700 border border-blue-100 px-2 py-1 rounded-md font-bold uppercase tracking-wider">{a.journee_name}</span>
                      <p className="text-sm text-slate-600 mt-4 bg-slate-50 p-4 rounded-xl leading-relaxed">{a.description}</p>
                      <div className="flex justify-between items-center mt-4 pt-4 border-t border-slate-100">
                        <a href={a.social_link} target="_blank" rel="noreferrer" className="text-xs text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 font-bold transition-colors">Lien ↗</a>
-                       {a.remarque && <span className="text-xs text-emerald-700 font-bold bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-lg">✓ Feedback envoyé</span>}
+                       {a.remarque && <span className="text-xs text-emerald-700 font-bold bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-lg shadow-sm">✓ Feedback envoyé</span>}
                      </div>
                    </div>
                  ))}
@@ -240,15 +246,15 @@ export default function CalendarUI() {
                <>
                  {actionsOnSelectedDate.length > 0 && (
                    <div className="mb-8">
-                     <h3 className="font-extrabold text-slate-900 text-lg border-b border-slate-100 pb-3 mb-4">Vos actions soumises :</h3>
+                     <h3 className="font-extrabold text-slate-900 text-lg border-b border-slate-200 pb-3 mb-4">Vos actions soumises :</h3>
                      {actionsOnSelectedDate.map(a => (
-                       <div key={a.id} className={`p-4 rounded-2xl border mb-3 relative ${a.archived ? 'bg-slate-50 border-slate-200' : a.remarque ? 'bg-emerald-50/50 border-emerald-100 shadow-sm' : 'bg-white border-slate-200 shadow-sm'}`}>
-                         {a.archived && <span className="absolute top-4 right-4 text-xs font-bold bg-slate-200 text-slate-600 px-2 py-1 rounded-lg">📦 Clôturé</span>}
+                       <div key={a.id} className={`p-4 rounded-2xl border mb-3 relative ${a.archived ? 'bg-slate-50/50 border-slate-200' : a.remarque ? 'bg-emerald-50 border-emerald-200 shadow-sm' : 'bg-white border-slate-200 shadow-sm'}`}>
+                         {a.archived && <span className="absolute top-4 right-4 text-[10px] font-bold bg-slate-200 text-slate-600 px-2 py-1 rounded-lg uppercase tracking-wider">📦 Clôturé</span>}
                          <p className="font-bold text-indigo-700 text-base pr-20">{a.nom_action}</p>
                          <p className="text-xs font-bold text-slate-500 mt-1 uppercase tracking-wider">{a.journee_name}</p>
                          {a.remarque && (
-                           <div className="mt-3 bg-white text-emerald-800 p-3 rounded-xl text-xs font-bold border border-emerald-100 shadow-sm">
-                             <span className="text-emerald-500 mr-1">✓</span> Remarque Mission : {a.remarque}
+                           <div className="mt-3 bg-white/80 text-emerald-800 p-3 rounded-xl text-xs font-bold border border-emerald-100 shadow-sm">
+                             <span className="text-emerald-500 mr-1 text-sm">✓</span> Remarque Mission : {a.remarque}
                            </div>
                          )}
                        </div>
@@ -256,37 +262,37 @@ export default function CalendarUI() {
                    </div>
                  )}
 
-                 <h2 className="text-xl font-extrabold mb-5 text-slate-900 border-t border-slate-100 pt-6">Nouvelle déclaration</h2>
+                 <h2 className="text-xl font-extrabold mb-5 text-slate-900 border-t border-slate-200 pt-6">Nouvelle déclaration</h2>
                  <form onSubmit={handleSubmit} className="space-y-5">
                    <div>
-                     <label className="block text-sm font-bold text-slate-700 mb-1.5">Journée Internationale</label>
-                     <select value={selectedJournee} onChange={(e) => setSelectedJournee(e.target.value)} className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none font-semibold text-slate-700 transition-all">
+                     <label className="block text-xs font-extrabold text-slate-500 mb-1.5 uppercase tracking-wider">Journée Internationale</label>
+                     <select value={selectedJournee} onChange={(e) => setSelectedJournee(e.target.value)} className="w-full p-3.5 bg-white/50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-semibold text-slate-700 transition-all shadow-sm">
                        {journeesOnDate.map((j, idx) => <option key={idx} value={j.name}>{j.name}</option>)}
                        <option value="custom">Autre / Journée personnalisée...</option>
                      </select>
                    </div>
                    {selectedJournee === 'custom' && (
                      <div>
-                       <label className="block text-sm font-bold text-slate-700 mb-1.5">Nom de la journée</label>
-                       <input type="text" required value={customJournee} onChange={(e) => setCustomJournee(e.target.value)} className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all" />
+                       <label className="block text-xs font-extrabold text-slate-500 mb-1.5 uppercase tracking-wider">Nom de la journée</label>
+                       <input type="text" required value={customJournee} onChange={(e) => setCustomJournee(e.target.value)} className="w-full p-3.5 bg-white/50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm" />
                      </div>
                    )}
                    <div>
-                     <label className="block text-sm font-bold text-slate-700 mb-1.5">Nom de l'action</label>
-                     <input type="text" required value={nomAction} onChange={(e) => setNomAction(e.target.value)} className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all" />
+                     <label className="block text-xs font-extrabold text-slate-500 mb-1.5 uppercase tracking-wider">Nom de l'action</label>
+                     <input type="text" required value={nomAction} onChange={(e) => setNomAction(e.target.value)} className="w-full p-3.5 bg-white/50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm" />
                    </div>
                    <div>
-                     <label className="block text-sm font-bold text-slate-700 mb-1.5">Lien de la publication</label>
-                     <input type="url" required value={socialLink} onChange={(e) => setSocialLink(e.target.value)} className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all" />
+                     <label className="block text-xs font-extrabold text-slate-500 mb-1.5 uppercase tracking-wider">Lien de la publication</label>
+                     <input type="url" required value={socialLink} onChange={(e) => setSocialLink(e.target.value)} className="w-full p-3.5 bg-white/50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm" />
                    </div>
                    <div>
-                     <label className="block text-sm font-bold text-slate-700 mb-1.5">Description courte</label>
-                     <textarea rows="3" required value={description} onChange={(e) => setDescription(e.target.value)} className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none resize-none transition-all" />
+                     <label className="block text-xs font-extrabold text-slate-500 mb-1.5 uppercase tracking-wider">Description courte</label>
+                     <textarea rows="3" required value={description} onChange={(e) => setDescription(e.target.value)} className="w-full p-3.5 bg-white/50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none resize-none transition-all shadow-sm" />
                    </div>
-                   <button type="submit" disabled={isSubmitting} className="w-full py-4 mt-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all shadow-md disabled:opacity-50">
+                   <button type="submit" disabled={isSubmitting} className="w-full py-4 mt-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-extrabold rounded-xl hover:shadow-lg hover:-translate-y-0.5 transition-all shadow-md disabled:opacity-50 disabled:transform-none">
                      {isSubmitting ? 'Transmission en cours...' : 'Envoyer à la mission'}
                    </button>
-                   {submitStatus && <div className={`p-4 rounded-xl font-bold text-center text-sm ${submitStatus.includes('succès') ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>{submitStatus}</div>}
+                   {submitStatus && <div className={`p-4 rounded-xl font-bold text-center text-sm shadow-sm ${submitStatus.includes('succès') ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>{submitStatus}</div>}
                  </form>
                </>
              )}

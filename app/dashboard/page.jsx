@@ -12,25 +12,14 @@ export default function DashboardHome() {
   useEffect(() => {
     async function loadProfile() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push('/');
-        return;
-      }
-
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
+      if (!user) return router.push('/');
+      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
       setProfile(data);
       setLoading(false);
     }
-    
     loadProfile();
   }, [router]);
 
-  // Helper function for the avatar initials
   const getInitials = (name) => {
     if (!name) return 'U';
     const splitName = name.trim().split(' ');
@@ -38,98 +27,70 @@ export default function DashboardHome() {
     return (splitName[0][0] + splitName[splitName.length - 1][0]).toUpperCase();
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-pulse text-xl font-bold text-gray-400">Chargement du portail...</div>
-      </div>
-    );
-  }
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-pulse text-xl font-bold text-indigo-400">Chargement...</div></div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-6xl mx-auto space-y-8">
+    <div className="min-h-screen bg-slate-50 p-4 sm:p-8 relative font-sans overflow-hidden">
+      
+      {/* Liquid Glass Background Elements */}
+      <div className="fixed top-[-10%] left-[-10%] w-[500px] h-[500px] bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob z-0 pointer-events-none"></div>
+      <div className="fixed top-[-10%] right-[-10%] w-[500px] h-[500px] bg-teal-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000 z-0 pointer-events-none"></div>
+
+      <div className="max-w-6xl mx-auto space-y-8 relative z-10">
         
-        {/* Top Header with Profile Info */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-extrabold text-gray-900">Tableau de Bord Central</h1>
-          </div>
-          
+        {/* Header */}
+        <div className="bg-white/70 backdrop-blur-2xl p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/50 flex flex-col md:flex-row justify-between items-center gap-4">
+          <div><h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Tableau de Bord Central</h1></div>
           <div className="flex items-center gap-6">
             <div className="hidden md:block text-right">
-              <p className="font-bold text-gray-900 text-lg">{profile?.full_name || 'Utilisateur'}</p>
-              <p className="text-sm font-medium text-gray-500">
-                {profile?.poste} 
-                {profile?.role === 'chef_club' && profile?.club && (
-                  <span className="text-blue-600 font-bold"> • {profile.club}</span>
-                )}
-              </p>
+              <p className="font-bold text-slate-900 text-lg">{profile?.full_name}</p>
+              <p className="text-sm font-medium text-slate-500">{profile?.poste} {profile?.role === 'chef_club' && profile?.club && <span className="text-indigo-600 font-bold"> • {profile.club}</span>}</p>
             </div>
-            
-            <div className="h-14 w-14 rounded-full bg-blue-600 text-white shadow-md flex items-center justify-center font-extrabold text-xl border-2 border-blue-200 shrink-0">
-              {getInitials(profile?.full_name)}
-            </div>
-
-            <div className="h-10 w-px bg-gray-200 hidden md:block"></div>
-
-            <button 
-              onClick={async () => { await supabase.auth.signOut(); router.push('/'); }} 
-              className="px-5 py-2 text-sm bg-red-50 text-red-600 font-bold rounded-lg hover:bg-red-100 transition"
-            >
-              Déconnexion
-            </button>
+            <div className="h-14 w-14 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-md flex items-center justify-center font-extrabold text-xl shrink-0 ring-2 ring-indigo-100">{getInitials(profile?.full_name)}</div>
+            <div className="h-10 w-px bg-slate-200 hidden md:block"></div>
+            <button onClick={async () => { await supabase.auth.signOut(); router.push('/'); }} className="px-5 py-2.5 text-sm bg-red-50/80 text-red-600 font-bold rounded-xl hover:bg-red-100 transition-colors backdrop-blur-sm shadow-sm">Déconnexion</button>
           </div>
         </div>
 
-        {/* Dynamic Navigation Grid based on Role */}
+        {/* Dynamic Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          
-          {/* VISIBLE TO EVERYONE (Calendar) */}
-          <Link href="/dashboard/calendar" className="block p-8 bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md hover:border-blue-300 transition group cursor-pointer">
-            <div className="h-12 w-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-4 text-2xl group-hover:scale-110 transition-transform">📅</div>
-            <h2 className="text-2xl font-bold text-gray-900">Calendrier des Actions</h2>
-            <p className="text-gray-500 mt-2">
-              {profile?.role === 'chef_club' ? 'Accédez au calendrier pour déclarer votre travail.' : 'Visualisez les actions soumises par les clubs par date.'}
-            </p>
+          <Link href="/dashboard/calendar" className="block p-8 bg-white/60 backdrop-blur-xl border border-white/50 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-lg hover:-translate-y-1 transition-all group">
+            <div className="h-14 w-14 bg-gradient-to-br from-blue-100 to-indigo-100 text-blue-600 rounded-2xl flex items-center justify-center mb-5 text-2xl shadow-inner group-hover:scale-110 transition-transform">📅</div>
+            <h2 className="text-2xl font-bold text-slate-900">Calendrier des Actions</h2>
+            <p className="text-slate-500 mt-2 font-medium">{profile?.role === 'chef_club' ? 'Accédez au calendrier pour déclarer votre travail.' : 'Visualisez les actions soumises par les clubs par date.'}</p>
           </Link>
 
-          {/* VISIBLE ONLY TO CLUB CHEFS */}
           {profile?.role === 'chef_club' && (
-            <Link href="/dashboard/ahkili" className="block p-8 bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md hover:border-indigo-300 transition group cursor-pointer">
-              <div className="h-12 w-12 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center mb-4 text-2xl group-hover:scale-110 transition-transform">💬</div>
-              <h2 className="text-2xl font-bold text-gray-900 font-arabic">أحكيلي</h2>
-              <p className="text-gray-500 mt-2">Ouvrez une discussion directe et confidentielle avec la mission.</p>
+            <Link href="/dashboard/ahkili" className="block p-8 bg-white/60 backdrop-blur-xl border border-white/50 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-lg hover:-translate-y-1 transition-all group">
+              <div className="h-14 w-14 bg-gradient-to-br from-indigo-100 to-purple-100 text-indigo-600 rounded-2xl flex items-center justify-center mb-5 text-2xl shadow-inner group-hover:scale-110 transition-transform">💬</div>
+              <h2 className="text-2xl font-bold text-slate-900 font-arabic">أحكيلي</h2>
+              <p className="text-slate-500 mt-2 font-medium">Ouvrez une discussion directe et confidentielle avec la mission.</p>
             </Link>
           )}
 
-          {/* VISIBLE ONLY TO CHEF MISSION */}
           {profile?.role === 'chef_mission_inter' && (
-            <Link href="/dashboard/inbox" className="block p-8 bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md hover:border-green-300 transition group cursor-pointer">
-              <div className="h-12 w-12 bg-green-100 text-green-600 rounded-xl flex items-center justify-center mb-4 text-2xl group-hover:scale-110 transition-transform">📥</div>
-              <h2 className="text-2xl font-bold text-gray-900">Boîte de Réception</h2>
-              <p className="text-gray-500 mt-2">Gérez les actions soumises et le chat أحكيلي.</p>
+            <Link href="/dashboard/inbox" className="block p-8 bg-white/60 backdrop-blur-xl border border-white/50 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-lg hover:-translate-y-1 transition-all group">
+              <div className="h-14 w-14 bg-gradient-to-br from-emerald-100 to-teal-100 text-emerald-600 rounded-2xl flex items-center justify-center mb-5 text-2xl shadow-inner group-hover:scale-110 transition-transform">📥</div>
+              <h2 className="text-2xl font-bold text-slate-900">Boîte de Réception</h2>
+              <p className="text-slate-500 mt-2 font-medium">Gérez les actions soumises et le chat أحكيلي.</p>
             </Link>
           )}
 
-          {/* VISIBLE ONLY TO COMITE NATIONAL */}
           {profile?.role === 'comite_national' && (
-            <Link href="/dashboard/inbox" className="block p-8 bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md hover:border-teal-300 transition group cursor-pointer">
-              <div className="h-12 w-12 bg-teal-100 text-teal-600 rounded-xl flex items-center justify-center mb-4 text-2xl group-hover:scale-110 transition-transform">📊</div>
-              <h2 className="text-2xl font-bold text-gray-900">Travaux des Clubs</h2>
-              <p className="text-gray-500 mt-2">Consultez le registre des actions soumises par les clubs.</p>
+            <Link href="/dashboard/inbox" className="block p-8 bg-white/60 backdrop-blur-xl border border-white/50 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-lg hover:-translate-y-1 transition-all group">
+              <div className="h-14 w-14 bg-gradient-to-br from-teal-100 to-emerald-100 text-teal-600 rounded-2xl flex items-center justify-center mb-5 text-2xl shadow-inner group-hover:scale-110 transition-transform">📊</div>
+              <h2 className="text-2xl font-bold text-slate-900">Travaux des Clubs</h2>
+              <p className="text-slate-500 mt-2 font-medium">Consultez le registre des actions soumises par les clubs.</p>
             </Link>
           )}
 
-          {/* VISIBLE TO BOTH ADMINS */}
           {(profile?.role === 'chef_mission_inter' || profile?.role === 'comite_national') && (
-            <Link href="/dashboard/users" className="block p-8 bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md hover:border-purple-300 transition group cursor-pointer">
-              <div className="h-12 w-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center mb-4 text-2xl group-hover:scale-110 transition-transform">👥</div>
-              <h2 className="text-2xl font-bold text-gray-900">Gestion Utilisateurs</h2>
-              <p className="text-gray-500 mt-2">Ajouter, modifier ou supprimer des membres du portail.</p>
+            <Link href="/dashboard/users" className="block p-8 bg-white/60 backdrop-blur-xl border border-white/50 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-lg hover:-translate-y-1 transition-all group">
+              <div className="h-14 w-14 bg-gradient-to-br from-purple-100 to-pink-100 text-purple-600 rounded-2xl flex items-center justify-center mb-5 text-2xl shadow-inner group-hover:scale-110 transition-transform">👥</div>
+              <h2 className="text-2xl font-bold text-slate-900">Gestion Utilisateurs</h2>
+              <p className="text-slate-500 mt-2 font-medium">Ajouter, modifier ou supprimer des membres du portail.</p>
             </Link>
           )}
-
         </div>
       </div>
     </div>
