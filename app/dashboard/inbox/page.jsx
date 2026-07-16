@@ -7,7 +7,7 @@ import Link from 'next/link';
 export default function InboxPage() {
   const [profile, setProfile] = useState(null);
   const [actions, setActions] = useState([]);
-  const [viewMode, setViewMode] = useState('active'); // State for Active vs Archive tab
+  const [viewMode, setViewMode] = useState('active'); // 'active' or 'archive'
   
   // Mission Chat State
   const [threads, setThreads] = useState([]);
@@ -41,12 +41,15 @@ export default function InboxPage() {
     loadData();
   }, [router]);
 
-  // Archive Logic
+  // Sync Archive Logic (Works for both Comite and Mission)
   const handleArchive = async (actionId) => {
     const { error } = await supabase.from('submitted_actions').update({ archived: true }).eq('id', actionId);
-    if (!error) {
-      setActions(actions.map(a => a.id === actionId ? { ...a, archived: true } : a));
-    }
+    if (!error) setActions(actions.map(a => a.id === actionId ? { ...a, archived: true } : a));
+  };
+
+  const handleUnarchive = async (actionId) => {
+    const { error } = await supabase.from('submitted_actions').update({ archived: false }).eq('id', actionId);
+    if (!error) setActions(actions.map(a => a.id === actionId ? { ...a, archived: false } : a));
   };
 
   const handleSaveRemarque = async (actionId) => {
@@ -56,7 +59,7 @@ export default function InboxPage() {
     const { error } = await supabase.from('submitted_actions').update({ remarque: text }).eq('id', actionId);
     if (!error) {
       setActions(actions.map(a => a.id === actionId ? { ...a, remarque: text } : a));
-      alert("Point à améliorer envoyé au club !");
+      setRemarqueInputs({...remarqueInputs, [actionId]: ''});
     }
   };
 
@@ -70,7 +73,6 @@ export default function InboxPage() {
   const handleReply = async (e) => {
     e.preventDefault();
     if (!replyText.trim() || !activeThread) return;
-
     const msgData = { thread_id: activeThread.id, sender_id: profile.id, message: replyText, is_mission_reply: true };
     const { error } = await supabase.from('ahkili_messages').insert([msgData]);
     if (!error) {
@@ -85,126 +87,163 @@ export default function InboxPage() {
     return (splitName.length === 1 ? splitName[0][0] : splitName[0][0] + splitName[splitName.length - 1][0]).toUpperCase();
   };
 
-  if (!profile || profile.role === 'chef_club') return <div className="min-h-screen bg-gray-50 flex items-center justify-center"><div className="animate-pulse font-bold">Chargement...</div></div>;
+  if (!profile || profile.role === 'chef_club') return <div className="min-h-screen bg-gray-50 flex items-center justify-center"><div className="animate-pulse font-bold text-xl text-indigo-400">Chargement...</div></div>;
 
-  // Filter actions based on Active vs Archive
   const filteredActions = actions.filter(a => viewMode === 'active' ? !a.archived : a.archived);
 
-  // COMITE NATIONAL VIEW
+  // ========================================================
+  // COMITE NATIONAL VIEW (Upgraded UI + Unarchive Sync)
+  // ========================================================
   if (profile.role === 'comite_national') {
     return (
-      <div className="min-h-screen bg-gray-50 p-8">
+      <div className="min-h-screen bg-slate-50 p-8 font-sans">
         <div className="max-w-6xl mx-auto space-y-8">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border flex justify-between items-center">
+          
+          <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex justify-between items-center bg-gradient-to-r from-white to-slate-50">
             <div>
-              <Link href="/dashboard" className="text-sm font-bold text-teal-600 hover:underline mb-1 inline-block">← Retour</Link>
-              <h1 className="text-2xl font-extrabold text-gray-900">Travaux des Clubs</h1>
+              <Link href="/dashboard" className="text-sm font-bold text-teal-600 hover:text-teal-700 transition mb-1 inline-block">← Retour au hub</Link>
+              <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Travaux des Clubs</h1>
             </div>
-          </div>
-          <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
-            <div className="bg-teal-600 px-6 py-4 flex justify-between items-center">
-              <h2 className="text-lg font-bold text-white">📥 Registre {viewMode === 'active' ? 'Actif' : 'Archivé'}</h2>
-              <div className="flex bg-teal-700 rounded-lg p-1">
-                <button onClick={() => setViewMode('active')} className={`px-4 py-1 text-xs font-bold rounded ${viewMode === 'active' ? 'bg-white text-teal-700' : 'text-white'}`}>Actives</button>
-                <button onClick={() => setViewMode('archive')} className={`px-4 py-1 text-xs font-bold rounded ${viewMode === 'archive' ? 'bg-white text-teal-700' : 'text-white'}`}>Archives</button>
+            <div className="flex items-center gap-4">
+              <div className="text-right hidden sm:block">
+                <p className="font-bold text-slate-900">{profile.full_name}</p>
+                <p className="text-sm text-slate-500 font-medium">{profile.poste}</p>
+              </div>
+              <div className="h-12 w-12 rounded-full bg-gradient-to-br from-teal-500 to-emerald-600 text-white flex items-center justify-center font-bold shadow-md ring-2 ring-teal-100">
+                {getInitials(profile.full_name)}
               </div>
             </div>
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-100 text-gray-600 text-sm uppercase tracking-wider">
-                  <th className="p-4 font-bold">Action & Club</th>
-                  <th className="p-4 font-bold">Date & Journée</th>
-                  <th className="p-4 font-bold text-right">Lien & Remarque</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filteredActions.length === 0 ? (
-                  <tr><td colSpan="3" className="p-6 text-center text-gray-500 italic">Aucune action dans ce dossier.</td></tr>
-                ) : filteredActions.map(action => (
-                  <tr key={action.id} className="hover:bg-gray-50">
-                    <td className="p-4">
-                      <p className="font-bold text-gray-900">{action.nom_action}</p>
-                      <p className="font-bold text-blue-600 text-sm">{action.club}</p>
-                    </td>
-                    <td className="p-4 text-gray-600">
-                      <span className="bg-teal-50 text-teal-700 px-2 py-1 rounded-md text-xs font-bold border">{action.journee_name}</span>
-                    </td>
-                    <td className="p-4 text-right space-y-2">
-                      <a href={action.social_link} target="_blank" rel="noreferrer" className="px-4 py-2 bg-blue-50 text-blue-600 font-bold rounded-lg text-xs inline-block">Voir ↗</a>
-                      {action.remarque && (
-                        <p className="text-xs text-green-700 font-bold bg-green-50 p-2 rounded text-left mt-2 border border-green-200">✓ Validé: {action.remarque}</p>
-                      )}
-                    </td>
+          </div>
+
+          <div className="bg-white rounded-3xl shadow-lg shadow-slate-200/50 border border-slate-200 overflow-hidden">
+            <div className="bg-gradient-to-r from-teal-600 to-emerald-600 px-6 py-5 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-white tracking-wide">📥 Registre {viewMode === 'active' ? 'Actif' : 'Archivé'}</h2>
+              <div className="flex bg-teal-800/40 rounded-xl p-1 backdrop-blur-sm">
+                <button onClick={() => setViewMode('active')} className={`px-5 py-2 text-sm font-bold rounded-lg transition-all ${viewMode === 'active' ? 'bg-white text-teal-700 shadow-sm' : 'text-teal-50 hover:text-white'}`}>Actives</button>
+                <button onClick={() => setViewMode('archive')} className={`px-5 py-2 text-sm font-bold rounded-lg transition-all ${viewMode === 'archive' ? 'bg-white text-teal-700 shadow-sm' : 'text-teal-50 hover:text-white'}`}>Archives</button>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-widest font-bold border-b border-slate-200">
+                    <th className="p-5">Action & Club</th>
+                    <th className="p-5">Date & Journée</th>
+                    <th className="p-5 text-right">Gestion & Liens</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredActions.length === 0 ? (
+                    <tr><td colSpan="3" className="p-12 text-center text-slate-400 font-medium">Aucune action dans ce dossier.</td></tr>
+                  ) : filteredActions.map(action => (
+                    <tr key={action.id} className="hover:bg-slate-50 transition-colors group">
+                      <td className="p-5">
+                        <p className="font-bold text-slate-900 text-base">{action.nom_action}</p>
+                        <p className="font-semibold text-indigo-600 text-sm mt-0.5">{action.club}</p>
+                      </td>
+                      <td className="p-5">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-teal-50 text-teal-700 border border-teal-200 shadow-sm">
+                          {action.journee_name}
+                        </span>
+                      </td>
+                      <td className="p-5 text-right space-y-2">
+                        <div className="flex justify-end gap-2">
+                          <a href={action.social_link} target="_blank" rel="noreferrer" className="px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-xl text-xs hover:bg-slate-200 transition-colors">Voir ↗</a>
+                          {viewMode === 'active' ? (
+                            <button onClick={() => handleArchive(action.id)} className="px-4 py-2 bg-orange-50 text-orange-700 font-bold rounded-xl text-xs hover:bg-orange-100 transition-colors">Archiver</button>
+                          ) : (
+                            <button onClick={() => handleUnarchive(action.id)} className="px-4 py-2 bg-blue-50 text-blue-700 font-bold rounded-xl text-xs hover:bg-blue-100 transition-colors">Désarchiver</button>
+                          )}
+                        </div>
+                        {action.remarque && (
+                          <p className="text-xs text-emerald-700 font-bold bg-emerald-50 p-2.5 rounded-lg text-left mt-2 border border-emerald-100 shadow-sm inline-block">✓ Validé: {action.remarque}</p>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
     );
   }
 
-  // CHEF MISSION VIEW
+  // ========================================================
+  // CHEF MISSION VIEW (Upgraded UI + Unarchive Sync)
+  // ========================================================
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-6xl mx-auto space-y-8">
+    <div className="min-h-screen bg-slate-50 p-8 font-sans">
+      <div className="max-w-7xl mx-auto space-y-8">
         
-        <div className="bg-white p-6 rounded-2xl shadow-sm border flex justify-between items-center">
+        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex justify-between items-center bg-gradient-to-r from-white to-slate-50">
           <div>
-            <Link href="/dashboard" className="text-sm font-bold text-blue-600 hover:underline mb-1 inline-block">← Retour</Link>
-            <h1 className="text-2xl font-extrabold text-gray-900">Boîte de Réception Centrale</h1>
+            <Link href="/dashboard" className="text-sm font-bold text-indigo-600 hover:text-indigo-700 transition mb-1 inline-block">← Retour au hub</Link>
+            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Boîte de Réception Centrale</h1>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="text-right hidden sm:block">
+              <p className="font-bold text-slate-900">{profile.full_name}</p>
+              <p className="text-sm text-slate-500 font-medium">{profile.poste}</p>
+            </div>
+            <div className="h-12 w-12 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 text-white flex items-center justify-center font-bold shadow-md ring-2 ring-indigo-100">
+              {getInitials(profile.full_name)}
+            </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
-          <div className="bg-white rounded-2xl shadow-sm border overflow-hidden flex flex-col h-[650px]">
-            <div className="bg-green-600 px-6 py-4 shrink-0 flex justify-between items-center">
-              <h2 className="text-lg font-bold text-white">📥 Actions {viewMode === 'active' ? 'Soumises' : 'Archivées'}</h2>
-              <div className="flex bg-green-700 rounded-lg p-1">
-                <button onClick={() => setViewMode('active')} className={`px-3 py-1 text-xs font-bold rounded ${viewMode === 'active' ? 'bg-white text-green-700' : 'text-white'}`}>Actives</button>
-                <button onClick={() => setViewMode('archive')} className={`px-3 py-1 text-xs font-bold rounded ${viewMode === 'archive' ? 'bg-white text-green-700' : 'text-white'}`}>Archives</button>
+          {/* Actions Column */}
+          <div className="bg-white rounded-3xl shadow-lg shadow-slate-200/50 border border-slate-200 overflow-hidden flex flex-col h-[700px]">
+            <div className="bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-5 shrink-0 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-white tracking-wide">📥 Actions {viewMode === 'active' ? 'Soumises' : 'Archivées'}</h2>
+              <div className="flex bg-black/20 rounded-xl p-1 backdrop-blur-sm">
+                <button onClick={() => setViewMode('active')} className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${viewMode === 'active' ? 'bg-white text-emerald-700 shadow-sm' : 'text-emerald-50 hover:text-white'}`}>Actives</button>
+                <button onClick={() => setViewMode('archive')} className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${viewMode === 'archive' ? 'bg-white text-emerald-700 shadow-sm' : 'text-emerald-50 hover:text-white'}`}>Archives</button>
               </div>
             </div>
-            <div className="p-6 overflow-y-auto flex-1 space-y-4 bg-gray-50/50">
-              {filteredActions.length === 0 ? <p className="text-gray-500 italic text-center mt-10">Aucune action dans ce dossier.</p> : filteredActions.map((action) => (
-                <div key={action.id} className="p-4 border rounded-xl bg-white shadow-sm">
+            
+            <div className="p-6 overflow-y-auto flex-1 space-y-5 bg-slate-50/50">
+              {filteredActions.length === 0 ? <p className="text-slate-400 font-medium text-center mt-10">Aucune action dans ce dossier.</p> : filteredActions.map((action) => (
+                <div key={action.id} className="p-5 border border-slate-200 rounded-2xl bg-white shadow-sm hover:shadow-md transition-shadow group">
                   
-                  <div className="flex justify-between items-start mb-2">
-                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${action.remarque ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                  <div className="flex justify-between items-start mb-3">
+                    <span className={`text-xs font-extrabold px-3 py-1.5 rounded-full shadow-sm ${action.remarque ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-100'}`}>
                       {action.journee_name}
                     </span>
-                    {!action.archived && (
-                      <button onClick={() => handleArchive(action.id)} className="text-[10px] bg-gray-100 text-gray-600 px-2 py-1 rounded font-bold hover:bg-gray-200">Archiver</button>
-                    )}
+                    <div className="flex gap-2">
+                      <a href={action.social_link} target="_blank" rel="noreferrer" className="text-xs bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg font-bold hover:bg-slate-200 transition-colors">Voir ↗</a>
+                      {viewMode === 'active' ? (
+                        <button onClick={() => handleArchive(action.id)} className="text-xs bg-orange-50 text-orange-700 px-3 py-1.5 rounded-lg font-bold hover:bg-orange-100 transition-colors">Archiver</button>
+                      ) : (
+                        <button onClick={() => handleUnarchive(action.id)} className="text-xs bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg font-bold hover:bg-blue-100 transition-colors">Désarchiver</button>
+                      )}
+                    </div>
                   </div>
                   
-                  <div className="flex justify-between items-start mt-2">
-                    <h3 className="text-md font-bold">{action.nom_action}</h3>
-                    <a href={action.social_link} target="_blank" rel="noreferrer" className="text-xs font-bold text-blue-600 hover:underline">Voir ↗</a>
-                  </div>
-                  <p className="text-sm font-bold text-blue-600 mb-2">{action.club}</p>
-                  <p className="text-sm text-gray-600 mb-4">{action.description}</p>
+                  <h3 className="text-lg font-bold text-slate-900 leading-tight">{action.nom_action}</h3>
+                  <p className="text-sm font-bold text-indigo-600 mt-1 mb-3">{action.club}</p>
+                  <p className="text-sm text-slate-600 mb-5 leading-relaxed bg-slate-50 p-3 rounded-xl">{action.description}</p>
                   
-                  {/* Feedback Section */}
                   {action.remarque ? (
-                    <div className="bg-green-50 border border-green-200 p-3 rounded-lg flex justify-between items-center">
+                    <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 p-4 rounded-xl flex justify-between items-center">
                       <div>
-                        <p className="text-xs font-bold text-green-800 uppercase mb-1">✓ Remarque envoyée :</p>
-                        <p className="text-sm text-green-900">{action.remarque}</p>
+                        <p className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider mb-1">✓ Feedback Validé</p>
+                        <p className="text-sm font-medium text-emerald-900">{action.remarque}</p>
                       </div>
                     </div>
                   ) : (
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 bg-slate-50 p-2 rounded-xl border border-slate-100">
                       <input 
                         type="text" 
-                        placeholder="Ajouter une remarque / point à améliorer..." 
-                        className="flex-1 p-2 text-sm border rounded-lg outline-none focus:border-green-400"
+                        placeholder="Taper un point à améliorer..." 
+                        className="flex-1 p-2.5 text-sm bg-transparent outline-none font-medium text-slate-700"
                         value={remarqueInputs[action.id] || ''}
                         onChange={(e) => setRemarqueInputs({...remarqueInputs, [action.id]: e.target.value})}
                       />
-                      <button onClick={() => handleSaveRemarque(action.id)} className="px-3 py-2 bg-green-100 text-green-700 font-bold text-sm rounded-lg hover:bg-green-200">Valider</button>
+                      <button onClick={() => handleSaveRemarque(action.id)} className="px-4 py-2 bg-emerald-500 text-white font-bold text-sm rounded-lg hover:bg-emerald-600 transition-colors shadow-sm">Valider</button>
                     </div>
                   )}
                 </div>
@@ -212,50 +251,54 @@ export default function InboxPage() {
             </div>
           </div>
 
-          {/* Chat Hub Logic (Unchanged) */}
-          <div className="bg-white rounded-2xl shadow-sm border overflow-hidden flex flex-col h-[650px]">
+          {/* Ahkili Chat Column */}
+          <div className="bg-white rounded-3xl shadow-lg shadow-slate-200/50 border border-slate-200 overflow-hidden flex flex-col h-[700px]">
             {!activeThread ? (
               <>
-                <div className="bg-indigo-600 px-6 py-4 shrink-0"><h2 className="text-lg font-bold text-white font-arabic">💬 Messages أحكيلي</h2></div>
-                <div className="p-6 overflow-y-auto flex-1 bg-gray-50/50 space-y-3">
-                  {threads.length === 0 ? <p className="text-gray-500 italic">Aucune discussion.</p> : threads.map(t => (
-                    <button key={t.id} onClick={() => openThread(t)} className="w-full text-left p-4 bg-white border rounded-xl shadow-sm hover:border-indigo-400 transition flex justify-between items-center group">
+                <div className="bg-gradient-to-r from-indigo-600 to-blue-600 px-6 py-5 shrink-0">
+                  <h2 className="text-xl font-bold text-white tracking-wide font-arabic">💬 Messages أحكيلي</h2>
+                </div>
+                <div className="p-6 overflow-y-auto flex-1 bg-slate-50/50 space-y-3">
+                  {threads.length === 0 ? <p className="text-slate-400 font-medium text-center mt-10">Aucune discussion.</p> : threads.map(t => (
+                    <button key={t.id} onClick={() => openThread(t)} className="w-full text-left p-5 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md hover:border-indigo-300 transition-all flex justify-between items-center group">
                       <div>
-                        <h3 className="font-bold text-gray-900">{t.subject}</h3>
-                        <p className="text-xs text-gray-500 mt-1">{t.club}</p>
+                        <h3 className="font-bold text-slate-900">{t.subject}</h3>
+                        <p className="text-sm font-medium text-indigo-600 mt-1">{t.club}</p>
                       </div>
-                      <span className="text-indigo-600 font-bold group-hover:translate-x-1 transition">Ouvrir →</span>
+                      <div className="h-8 w-8 rounded-full bg-indigo-50 flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
+                        <span className="text-indigo-600 font-bold group-hover:translate-x-0.5 transition-transform">→</span>
+                      </div>
                     </button>
                   ))}
                 </div>
               </>
             ) : (
               <>
-                <div className="bg-indigo-600 px-4 py-3 shrink-0 flex items-center gap-3">
-                  <button onClick={() => {setActiveThread(null); setReplyText('');}} className="text-white hover:bg-indigo-500 p-2 rounded-lg font-bold text-sm">← Retour</button>
+                <div className="bg-gradient-to-r from-indigo-600 to-blue-600 px-5 py-4 shrink-0 flex items-center gap-4">
+                  <button onClick={() => {setActiveThread(null); setReplyText('');}} className="text-white hover:bg-white/20 p-2 rounded-xl font-bold text-sm transition-colors backdrop-blur-sm">←</button>
                   <div className="overflow-hidden">
-                    <h2 className="text-md font-bold text-white truncate">{activeThread.subject}</h2>
-                    <p className="text-xs text-indigo-200">{activeThread.club}</p>
+                    <h2 className="text-base font-bold text-white truncate">{activeThread.subject}</h2>
+                    <p className="text-xs font-medium text-indigo-100">{activeThread.club}</p>
                   </div>
                 </div>
                 
-                <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-gray-50/50">
+                <div className="flex-1 p-5 overflow-y-auto space-y-4 bg-slate-50/50">
                   {messages.map((msg, idx) => (
                     <div key={idx} className={`flex ${msg.is_mission_reply ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[85%] p-3 rounded-2xl ${msg.is_mission_reply ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white border text-gray-800 rounded-tl-none shadow-sm'}`}>
-                        <p className="text-sm">{msg.message}</p>
-                        <div className={`flex items-center justify-end gap-1 mt-1 text-[10px] ${msg.is_mission_reply ? 'text-indigo-200' : 'text-gray-400'}`}>
+                      <div className={`max-w-[85%] p-4 rounded-2xl shadow-sm ${msg.is_mission_reply ? 'bg-indigo-600 text-white rounded-tr-sm' : 'bg-white border border-slate-200 text-slate-800 rounded-tl-sm'}`}>
+                        <p className="text-sm leading-relaxed">{msg.message}</p>
+                        <div className={`flex items-center justify-end gap-1.5 mt-2 text-[10px] font-bold ${msg.is_mission_reply ? 'text-indigo-200' : 'text-slate-400'}`}>
                           <span>{new Date(msg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
-                          {msg.is_mission_reply && <span className={msg.status === 'read' ? 'text-blue-300 font-bold' : ''}>{msg.status === 'read' ? '✓✓' : '✓'}</span>}
+                          {msg.is_mission_reply && <span className={msg.status === 'read' ? 'text-emerald-300' : ''}>{msg.status === 'read' ? '✓✓' : '✓'}</span>}
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
 
-                <form onSubmit={handleReply} className="p-3 bg-white border-t flex gap-2 items-end">
-                  <textarea value={replyText} onChange={(e) => setReplyText(e.target.value)} placeholder="Répondre..." className="flex-1 p-2 border rounded-lg resize-none outline-none focus:ring-2 focus:ring-indigo-500 text-sm" rows="2" />
-                  <button type="submit" className="px-4 py-3 bg-indigo-600 text-white font-bold text-sm rounded-lg hover:bg-indigo-700">Envoyer</button>
+                <form onSubmit={handleReply} className="p-4 bg-white border-t border-slate-100 flex gap-3 items-end">
+                  <textarea value={replyText} onChange={(e) => setReplyText(e.target.value)} placeholder="Écrire une réponse..." className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl resize-none outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all text-sm" rows="2" />
+                  <button type="submit" className="px-5 py-3.5 bg-indigo-600 text-white font-bold text-sm rounded-xl hover:bg-indigo-700 transition-colors shadow-sm">Envoyer</button>
                 </form>
               </>
             )}
