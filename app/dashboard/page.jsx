@@ -85,21 +85,22 @@ export default function DashboardHome() {
         {/* Dynamic Navigation Grid based on Role */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           
+          {/* VISIBLE TO EVERYONE (Calendar) */}
+          <Link href="/dashboard/calendar" className="block p-8 bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md hover:border-blue-300 transition group cursor-pointer">
+            <div className="h-12 w-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-4 text-2xl group-hover:scale-110 transition-transform">📅</div>
+            <h2 className="text-2xl font-bold text-gray-900">Calendrier des Actions</h2>
+            <p className="text-gray-500 mt-2">
+              {profile?.role === 'chef_club' ? 'Accédez au calendrier pour déclarer votre travail.' : 'Visualisez les actions soumises par les clubs par date.'}
+            </p>
+          </Link>
+
           {/* VISIBLE ONLY TO CLUB CHEFS */}
           {profile?.role === 'chef_club' && (
-            <>
-              <Link href="/dashboard/calendar" className="block p-8 bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md hover:border-blue-300 transition group cursor-pointer">
-                <div className="h-12 w-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-4 text-2xl group-hover:scale-110 transition-transform">📅</div>
-                <h2 className="text-2xl font-bold text-gray-900">Soumettre une Action</h2>
-                <p className="text-gray-500 mt-2">Accédez au calendrier des journées internationales pour déclarer votre travail.</p>
-              </Link>
-
-              <Link href="/dashboard/ahkili" className="block p-8 bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md hover:border-indigo-300 transition group cursor-pointer">
-                <div className="h-12 w-12 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center mb-4 text-2xl group-hover:scale-110 transition-transform">💬</div>
-                <h2 className="text-2xl font-bold text-gray-900 font-arabic">أحكيلي</h2>
-                <p className="text-gray-500 mt-2">Ouvrez une discussion directe et confidentielle avec la mission.</p>
-              </Link>
-            </>
+            <Link href="/dashboard/ahkili" className="block p-8 bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md hover:border-indigo-300 transition group cursor-pointer">
+              <div className="h-12 w-12 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center mb-4 text-2xl group-hover:scale-110 transition-transform">💬</div>
+              <h2 className="text-2xl font-bold text-gray-900 font-arabic">أحكيلي</h2>
+              <p className="text-gray-500 mt-2">Ouvrez une discussion directe et confidentielle avec la mission.</p>
+            </Link>
           )}
 
           {/* VISIBLE ONLY TO CHEF MISSION */}
