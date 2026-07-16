@@ -52,7 +52,6 @@ export default function CalendarUI() {
     return (splitName.length === 1 ? splitName[0][0] : splitName[0][0] + splitName[splitName.length - 1][0]).toUpperCase();
   };
 
-  // HELPER: Convert "Interact Club Tunis Golfe Carthagène" to "IC Tunis Golfe Carthagène"
   const getClubShortName = (name) => {
     if (!name) return "";
     return name.replace(/Interact Club/gi, "IC").replace(/Interact/gi, "IC").trim();
@@ -86,13 +85,12 @@ export default function CalendarUI() {
     const matchingJournees = JOURNEES_INTERNATIONALES.filter(j => j.date === dateStr);
     const actionsForThisDay = getActionsForDate(dateStr);
     
-    if (profile?.role === 'chef_club') {
-      setSelectedDateStr(dateStr);
-      setJourneesOnDate(matchingJournees);
-      setActionsOnSelectedDate(actionsForThisDay);
-      setSelectedJournee(matchingJournees.length > 0 ? matchingJournees[0].name : 'custom');
-      setShowModal(true);
-    }
+    // EVERYONE CAN NOW OPEN THE MODAL
+    setSelectedDateStr(dateStr);
+    setJourneesOnDate(matchingJournees);
+    setActionsOnSelectedDate(actionsForThisDay);
+    setSelectedJournee(matchingJournees.length > 0 ? matchingJournees[0].name : 'custom');
+    setShowModal(true);
   };
 
   const handleSubmit = async (e) => {
@@ -167,7 +165,6 @@ export default function CalendarUI() {
           </div>
         )}
 
-        {/* Calendar Grid */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="flex justify-between items-center bg-gray-900 text-white px-6 py-4">
             <button onClick={prevMonth} className="p-2 hover:bg-gray-700 rounded-lg font-bold">← Précédent</button>
@@ -186,23 +183,16 @@ export default function CalendarUI() {
               const day = i + 1;
               const dateStr = formatMMDD(month, day);
               const daysActions = getActionsForDate(dateStr);
-              // Only blue circle if there is an official journee but NO actions submitted yet to avoid clutter
               const hasEvents = JOURNEES_INTERNATIONALES.some(j => j.date === dateStr);
 
               return (
-                <div key={day} onClick={() => handleDayClick(day)} className={`min-h-[120px] border-r border-b border-gray-100 p-2 flex flex-col ${profile?.role === 'chef_club' ? 'cursor-pointer hover:bg-blue-50 transition' : ''}`}>
+                <div key={day} onClick={() => handleDayClick(day)} className="min-h-[120px] border-r border-b border-gray-100 p-2 flex flex-col cursor-pointer hover:bg-blue-50 transition">
                   <div className="flex justify-between items-start mb-1">
                     <span className={`text-sm font-bold w-7 h-7 flex items-center justify-center rounded-full ${hasEvents && daysActions.length === 0 ? 'bg-blue-600 text-white' : 'text-gray-700'}`}>{day}</span>
                   </div>
-                  
-                  {/* Visual Tags for Actions: Blue (Pending) or Green (Checked/Feedback sent) */}
                   <div className="flex flex-col gap-1 mt-1">
                     {daysActions.map(action => (
-                      <div 
-                        key={action.id} 
-                        className={`text-[10px] text-white rounded px-1.5 py-0.5 truncate font-bold shadow-sm ${action.remarque ? 'bg-green-500' : 'bg-blue-500'}`} 
-                        title={action.nom_action}
-                      >
+                      <div key={action.id} className={`text-[10px] text-white rounded px-1.5 py-0.5 truncate font-bold shadow-sm ${action.remarque ? 'bg-green-500' : 'bg-blue-500'}`} title={action.nom_action}>
                         {getClubShortName(action.club)}
                       </div>
                     ))}
@@ -214,62 +204,106 @@ export default function CalendarUI() {
         </div>
       </div>
 
-      {/* Modal for Club Chefs */}
+      {/* DYNAMIC MODAL BASED ON ROLE */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white p-8 rounded-2xl max-w-lg w-full shadow-2xl relative max-h-[90vh] overflow-y-auto">
              <button onClick={() => setShowModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-900 font-bold text-xl">✕</button>
              
-             {actionsOnSelectedDate.length > 0 && (
-               <div className="mb-6 space-y-3">
-                 <h3 className="font-bold text-gray-900 border-b pb-2">Vos actions pour cette date :</h3>
-                 {actionsOnSelectedDate.map(a => (
-                   <div key={a.id} className={`p-3 rounded-lg border ${a.remarque ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
-                     <p className="font-bold text-blue-600 text-sm">{a.nom_action}</p>
-                     <p className="text-xs text-gray-600 mt-1">{a.journee_name}</p>
-                     {a.remarque && (
-                       <div className="mt-2 bg-white text-green-800 p-2 rounded text-xs font-bold border border-green-200">
-                         ✓ Validé / Remarque Mission : {a.remarque}
-                       </div>
-                     )}
+             {/* ----------------------------------------------------- */}
+             {/* VIEW 1: COMITE NATIONAL (Strictly Limited Data) */}
+             {/* ----------------------------------------------------- */}
+             {profile.role === 'comite_national' && (
+               <div>
+                 <h2 className="text-xl font-bold mb-4 text-teal-700 border-b pb-2">Actions du {selectedDateStr}</h2>
+                 {actionsOnSelectedDate.length === 0 ? <p className="text-gray-500 italic">Aucune action trouvée.</p> : actionsOnSelectedDate.map(a => (
+                   <div key={a.id} className="p-4 bg-gray-50 rounded-xl border mb-3">
+                     <p className="font-bold text-gray-900">{a.nom_action}</p>
+                     <p className="text-sm font-bold text-blue-600 mb-1">{a.club}</p>
+                     <p className="text-xs text-gray-500 mb-3">{a.journee_name}</p>
+                     <a href={a.social_link} target="_blank" rel="noreferrer" className="text-xs bg-teal-100 text-teal-700 px-3 py-1.5 rounded-lg font-bold hover:bg-teal-200 transition">Voir la publication ↗</a>
                    </div>
                  ))}
                </div>
              )}
 
-             <h2 className="text-xl font-bold mb-4 text-gray-900 border-t pt-4">Soumettre une nouvelle action</h2>
-             
-             <form onSubmit={handleSubmit} className="space-y-4">
+             {/* ----------------------------------------------------- */}
+             {/* VIEW 2: CHEF MISSION (Full Data & Feedback Status) */}
+             {/* ----------------------------------------------------- */}
+             {profile.role === 'chef_mission_inter' && (
                <div>
-                 <label className="block text-sm font-bold text-gray-700 mb-1">Journée Internationale</label>
-                 <select value={selectedJournee} onChange={(e) => setSelectedJournee(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none font-medium">
-                   {journeesOnDate.map((j, idx) => <option key={idx} value={j.name}>{j.name}</option>)}
-                   <option value="custom">Autre / Journée personnalisée...</option>
-                 </select>
+                 <h2 className="text-xl font-bold mb-4 text-blue-700 border-b pb-2">Détails des Actions ({selectedDateStr})</h2>
+                 {actionsOnSelectedDate.length === 0 ? <p className="text-gray-500 italic">Aucune action trouvée.</p> : actionsOnSelectedDate.map(a => (
+                   <div key={a.id} className="p-4 bg-gray-50 rounded-xl border mb-3">
+                     <p className="font-bold text-gray-900">{a.nom_action}</p>
+                     <p className="text-sm font-bold text-blue-600 mb-2">{a.club}</p>
+                     <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-bold">{a.journee_name}</span>
+                     <p className="text-sm text-gray-700 mt-3 bg-white p-3 rounded border">{a.description}</p>
+                     <div className="flex justify-between items-center mt-3 pt-3 border-t">
+                       <a href={a.social_link} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline font-bold">Voir le lien ↗</a>
+                       {a.remarque && <span className="text-xs text-green-700 font-bold bg-green-100 px-2 py-1 rounded">✓ Feedback envoyé</span>}
+                     </div>
+                   </div>
+                 ))}
                </div>
-               {selectedJournee === 'custom' && (
-                 <div>
-                   <label className="block text-sm font-bold text-gray-700 mb-1">Nom de la journée</label>
-                   <input type="text" required value={customJournee} onChange={(e) => setCustomJournee(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none" />
-                 </div>
-               )}
-               <div>
-                 <label className="block text-sm font-bold text-gray-700 mb-1">Nom de l'action</label>
-                 <input type="text" required value={nomAction} onChange={(e) => setNomAction(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none" />
-               </div>
-               <div>
-                 <label className="block text-sm font-bold text-gray-700 mb-1">Lien de la publication</label>
-                 <input type="url" required value={socialLink} onChange={(e) => setSocialLink(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none" />
-               </div>
-               <div>
-                 <label className="block text-sm font-bold text-gray-700 mb-1">Description courte</label>
-                 <textarea rows="3" required value={description} onChange={(e) => setDescription(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none resize-none" />
-               </div>
-               <button type="submit" disabled={isSubmitting} className="w-full py-4 mt-2 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition disabled:opacity-50">
-                 {isSubmitting ? 'Envoi en cours...' : 'Envoyer à la mission'}
-               </button>
-               {submitStatus && <div className={`p-3 rounded-lg font-bold text-center text-sm ${submitStatus.includes('succès') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>{submitStatus}</div>}
-             </form>
+             )}
+
+             {/* ----------------------------------------------------- */}
+             {/* VIEW 3: CHEF CLUB (Own Actions + Submit Form) */}
+             {/* ----------------------------------------------------- */}
+             {profile.role === 'chef_club' && (
+               <>
+                 {actionsOnSelectedDate.length > 0 && (
+                   <div className="mb-6 space-y-3">
+                     <h3 className="font-bold text-gray-900 border-b pb-2">Vos actions pour cette date :</h3>
+                     {actionsOnSelectedDate.map(a => (
+                       <div key={a.id} className={`p-3 rounded-lg border ${a.remarque ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
+                         <p className="font-bold text-blue-600 text-sm">{a.nom_action}</p>
+                         <p className="text-xs text-gray-600 mt-1">{a.journee_name}</p>
+                         {a.remarque && (
+                           <div className="mt-2 bg-white text-green-800 p-2 rounded text-xs font-bold border border-green-200">
+                             ✓ Validé / Remarque Mission : {a.remarque}
+                           </div>
+                         )}
+                       </div>
+                     ))}
+                   </div>
+                 )}
+
+                 <h2 className="text-xl font-bold mb-4 text-gray-900 border-t pt-4">Soumettre une nouvelle action</h2>
+                 <form onSubmit={handleSubmit} className="space-y-4">
+                   <div>
+                     <label className="block text-sm font-bold text-gray-700 mb-1">Journée Internationale</label>
+                     <select value={selectedJournee} onChange={(e) => setSelectedJournee(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none font-medium">
+                       {journeesOnDate.map((j, idx) => <option key={idx} value={j.name}>{j.name}</option>)}
+                       <option value="custom">Autre / Journée personnalisée...</option>
+                     </select>
+                   </div>
+                   {selectedJournee === 'custom' && (
+                     <div>
+                       <label className="block text-sm font-bold text-gray-700 mb-1">Nom de la journée</label>
+                       <input type="text" required value={customJournee} onChange={(e) => setCustomJournee(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none" />
+                     </div>
+                   )}
+                   <div>
+                     <label className="block text-sm font-bold text-gray-700 mb-1">Nom de l'action</label>
+                     <input type="text" required value={nomAction} onChange={(e) => setNomAction(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none" />
+                   </div>
+                   <div>
+                     <label className="block text-sm font-bold text-gray-700 mb-1">Lien de la publication</label>
+                     <input type="url" required value={socialLink} onChange={(e) => setSocialLink(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none" />
+                   </div>
+                   <div>
+                     <label className="block text-sm font-bold text-gray-700 mb-1">Description courte</label>
+                     <textarea rows="3" required value={description} onChange={(e) => setDescription(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none resize-none" />
+                   </div>
+                   <button type="submit" disabled={isSubmitting} className="w-full py-4 mt-2 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition disabled:opacity-50">
+                     {isSubmitting ? 'Envoi en cours...' : 'Envoyer à la mission'}
+                   </button>
+                   {submitStatus && <div className={`p-3 rounded-lg font-bold text-center text-sm ${submitStatus.includes('succès') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>{submitStatus}</div>}
+                 </form>
+               </>
+             )}
           </div>
         </div>
       )}
