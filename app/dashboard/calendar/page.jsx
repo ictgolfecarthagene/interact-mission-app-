@@ -36,7 +36,6 @@ export default function CalendarUI() {
       const { data: userProfile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
       setProfile(userProfile);
 
-      // Fetch Actions: Admins fetch all, Clubs fetch only theirs
       let query = supabase.from('submitted_actions').select('*');
       if (userProfile?.role === 'chef_club') {
         query = query.eq('club', userProfile.club);
@@ -51,6 +50,12 @@ export default function CalendarUI() {
     if (!name) return 'U';
     const splitName = name.trim().split(' ');
     return (splitName.length === 1 ? splitName[0][0] : splitName[0][0] + splitName[splitName.length - 1][0]).toUpperCase();
+  };
+
+  // HELPER: Convert "Interact Club Tunis Golfe Carthagène" to "IC Tunis Golfe Carthagène"
+  const getClubShortName = (name) => {
+    if (!name) return "";
+    return name.replace(/Interact Club/gi, "IC").replace(/Interact/gi, "IC").trim();
   };
 
   const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
@@ -69,7 +74,6 @@ export default function CalendarUI() {
 
   const formatMMDD = (m, d) => `${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 
-  // Helper to map DB actions to the specific calendar date based on journee_name
   const getActionsForDate = (dateStr) => {
     return allActions.filter(action => {
       const journeeInfo = JOURNEES_INTERNATIONALES.find(j => j.name === action.journee_name);
@@ -82,7 +86,6 @@ export default function CalendarUI() {
     const matchingJournees = JOURNEES_INTERNATIONALES.filter(j => j.date === dateStr);
     const actionsForThisDay = getActionsForDate(dateStr);
     
-    // If admin clicks, do nothing (they just view the grid). If club clicks, open modal.
     if (profile?.role === 'chef_club') {
       setSelectedDateStr(dateStr);
       setJourneesOnDate(matchingJournees);
@@ -103,7 +106,8 @@ export default function CalendarUI() {
       journee_name: finalJourneeName,
       nom_action: nomAction,
       description: description,
-      social_link: socialLink
+      social_link: socialLink,
+      archived: false
     };
 
     const { data, error } = await supabase.from('submitted_actions').insert([newAction]).select().single();
@@ -114,7 +118,7 @@ export default function CalendarUI() {
       setSubmitStatus('Erreur lors de la soumission.');
     } else {
       setSubmitStatus('Action soumise avec succès !');
-      setAllActions([...allActions, data]); // Update local state so it appears immediately
+      setAllActions([...allActions, data]);
       setTimeout(() => {
         setShowModal(false);
         setSubmitStatus('');
@@ -181,22 +185,28 @@ export default function CalendarUI() {
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const day = i + 1;
               const dateStr = formatMMDD(month, day);
-              const hasEvents = JOURNEES_INTERNATIONALES.some(j => j.date === dateStr);
               const daysActions = getActionsForDate(dateStr);
+              // Only blue circle if there is an official journee but NO actions submitted yet to avoid clutter
+              const hasEvents = JOURNEES_INTERNATIONALES.some(j => j.date === dateStr);
 
               return (
                 <div key={day} onClick={() => handleDayClick(day)} className={`min-h-[120px] border-r border-b border-gray-100 p-2 flex flex-col ${profile?.role === 'chef_club' ? 'cursor-pointer hover:bg-blue-50 transition' : ''}`}>
                   <div className="flex justify-between items-start mb-1">
-                    <span className={`text-sm font-bold w-7 h-7 flex items-center justify-center rounded-full ${hasEvents ? 'bg-blue-600 text-white' : 'text-gray-700'}`}>{day}</span>
-                    {profile?.role === 'chef_club' && daysActions.length > 0 && <span className="w-2 h-2 rounded-full bg-green-500 mt-2 mr-1" title="Action soumise"></span>}
+                    <span className={`text-sm font-bold w-7 h-7 flex items-center justify-center rounded-full ${hasEvents && daysActions.length === 0 ? 'bg-blue-600 text-white' : 'text-gray-700'}`}>{day}</span>
                   </div>
                   
-                  {/* ADMIN VIEW: Show "IC Club Name" badges */}
-                  {profile?.role !== 'chef_club' && daysActions.map(action => (
-                    <div key={action.id} className="text-[10px] bg-indigo-50 border border-indigo-100 text-indigo-700 rounded px-1 py-0.5 truncate mt-1 font-bold" title={action.nom_action}>
-                      {action.club}
-                    </div>
-                  ))}
+                  {/* Visual Tags for Actions: Blue (Pending) or Green (Checked/Feedback sent) */}
+                  <div className="flex flex-col gap-1 mt-1">
+                    {daysActions.map(action => (
+                      <div 
+                        key={action.id} 
+                        className={`text-[10px] text-white rounded px-1.5 py-0.5 truncate font-bold shadow-sm ${action.remarque ? 'bg-green-500' : 'bg-blue-500'}`} 
+                        title={action.nom_action}
+                      >
+                        {getClubShortName(action.club)}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               );
             })}
@@ -204,23 +214,22 @@ export default function CalendarUI() {
         </div>
       </div>
 
-      {/* Modal for Club Chefs to view feedback and submit new actions */}
+      {/* Modal for Club Chefs */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white p-8 rounded-2xl max-w-lg w-full shadow-2xl relative max-h-[90vh] overflow-y-auto">
              <button onClick={() => setShowModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-900 font-bold text-xl">✕</button>
              
-             {/* Show Previous Submissions & Feedback */}
              {actionsOnSelectedDate.length > 0 && (
                <div className="mb-6 space-y-3">
                  <h3 className="font-bold text-gray-900 border-b pb-2">Vos actions pour cette date :</h3>
                  {actionsOnSelectedDate.map(a => (
-                   <div key={a.id} className="bg-gray-50 p-3 rounded-lg border">
+                   <div key={a.id} className={`p-3 rounded-lg border ${a.remarque ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
                      <p className="font-bold text-blue-600 text-sm">{a.nom_action}</p>
                      <p className="text-xs text-gray-600 mt-1">{a.journee_name}</p>
                      {a.remarque && (
-                       <div className="mt-2 bg-orange-100 text-orange-800 p-2 rounded text-xs font-bold border border-orange-200">
-                         💡 Point à améliorer (Mission) : {a.remarque}
+                       <div className="mt-2 bg-white text-green-800 p-2 rounded text-xs font-bold border border-green-200">
+                         ✓ Validé / Remarque Mission : {a.remarque}
                        </div>
                      )}
                    </div>
