@@ -12,13 +12,11 @@ export default function CalendarUI() {
   const [searchTerm, setSearchTerm] = useState('');
   const [allActions, setAllActions] = useState([]);
   
-  // Modal State
   const [selectedDateStr, setSelectedDateStr] = useState(null);
   const [journeesOnDate, setJourneesOnDate] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [actionsOnSelectedDate, setActionsOnSelectedDate] = useState([]);
   
-  // Form State
   const [selectedJournee, setSelectedJournee] = useState('');
   const [customJournee, setCustomJournee] = useState('');
   const [nomAction, setNomAction] = useState('');
@@ -93,7 +91,19 @@ export default function CalendarUI() {
     e.preventDefault();
     setIsSubmitting(true);
     const finalJourneeName = selectedJournee === 'custom' ? customJournee : selectedJournee;
-    const newAction = { user_id: profile.id, club: profile.club, journee_name: finalJourneeName, nom_action: nomAction, description: description, social_link: socialLink, archived: false };
+    
+    // Included submitter_name here
+    const newAction = { 
+      user_id: profile.id, 
+      club: profile.club, 
+      submitter_name: profile.full_name,
+      journee_name: finalJourneeName, 
+      nom_action: nomAction, 
+      description: description, 
+      social_link: socialLink, 
+      archived: false 
+    };
+    
     const { data, error } = await supabase.from('submitted_actions').insert([newAction]).select().single();
     setIsSubmitting(false);
 
@@ -113,13 +123,11 @@ export default function CalendarUI() {
   return (
     <div className="min-h-screen bg-slate-50 p-4 sm:p-8 relative font-sans overflow-hidden">
       
-      {/* Liquid Glass Animated Blobs */}
       <div className="fixed top-[-10%] left-[-10%] w-[500px] h-[500px] bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob z-0 pointer-events-none"></div>
       <div className="fixed top-[-10%] right-[-10%] w-[500px] h-[500px] bg-teal-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000 z-0 pointer-events-none"></div>
 
       <div className="max-w-7xl mx-auto space-y-8 relative z-10">
         
-        {/* Modern Header */}
         <div className="bg-white/70 backdrop-blur-2xl p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/50 flex flex-col md:flex-row justify-between items-center gap-4">
           <div>
             <Link href="/dashboard" className="text-sm font-bold text-blue-600 hover:text-blue-800 transition mb-1 inline-block">← Retour au hub</Link>
@@ -145,7 +153,6 @@ export default function CalendarUI() {
           </div>
         )}
 
-        {/* Premium Glass Calendar Grid */}
         <div className="bg-white/70 backdrop-blur-2xl rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/50 overflow-hidden">
           <div className="flex justify-between items-center bg-slate-900/90 text-white px-8 py-5 backdrop-blur-md">
             <button onClick={prevMonth} className="px-4 py-2 hover:bg-slate-800 rounded-xl font-bold transition-colors">← Précédent</button>
@@ -172,7 +179,6 @@ export default function CalendarUI() {
                     <span className={`text-sm font-extrabold w-8 h-8 flex items-center justify-center rounded-full transition-colors ${hasEvents && daysActions.length === 0 ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 group-hover:text-blue-600'}`}>{day}</span>
                   </div>
                   
-                  {/* Visual Tags - ARCHIVE (Gray), REMARQUE (Green), PENDING (Blue) */}
                   <div className="flex flex-col gap-1.5 mt-1">
                     {daysActions.map(action => {
                       let tagStyle = 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white border border-blue-400';
@@ -199,7 +205,6 @@ export default function CalendarUI() {
         </div>
       </div>
 
-      {/* Modern Glassmorphism Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-all">
           <div className="bg-white/90 backdrop-blur-2xl p-8 rounded-[2rem] max-w-xl w-full shadow-[0_20px_60px_rgb(0,0,0,0.1)] border border-white/60 relative max-h-[90vh] overflow-y-auto">
@@ -221,14 +226,19 @@ export default function CalendarUI() {
                </div>
              )}
 
-             {/* CHEF MISSION VIEW */}
+             {/* CHEF MISSION VIEW (Sees Submitter Name) */}
              {profile.role === 'chef_mission_inter' && (
                <div>
                  <h2 className="text-2xl font-extrabold mb-6 text-blue-800 border-b border-slate-200 pb-3">Détails ({selectedDateStr})</h2>
                  {actionsOnSelectedDate.length === 0 ? <p className="text-slate-400 font-medium italic text-center py-6">Aucune action trouvée.</p> : actionsOnSelectedDate.map(a => (
                    <div key={a.id} className={`p-5 rounded-2xl border mb-4 relative ${a.archived ? 'bg-slate-50/50 border-slate-200 opacity-75' : 'bg-white border-slate-200 shadow-sm'}`}>
                      {a.archived && <span className="absolute top-4 right-4 text-[10px] font-bold bg-slate-200 text-slate-600 px-2 py-1 rounded-lg uppercase tracking-wider">📦 Archivé</span>}
-                     <p className="font-bold text-slate-900 text-lg pr-20">{a.nom_action}</p>
+                     
+                     <div className="flex justify-between items-start mb-2">
+                       <p className="font-bold text-slate-900 text-lg pr-4">{a.nom_action}</p>
+                       {a.submitter_name && <span className="text-[10px] font-extrabold text-slate-600 bg-slate-100 px-2 py-1 rounded-md border border-slate-200">👤 {a.submitter_name}</span>}
+                     </div>
+                     
                      <p className="text-sm font-bold text-indigo-600 mb-3">{a.club}</p>
                      <span className="text-[10px] bg-blue-50 text-blue-700 border border-blue-100 px-2 py-1 rounded-md font-bold uppercase tracking-wider">{a.journee_name}</span>
                      <p className="text-sm text-slate-600 mt-4 bg-slate-50 p-4 rounded-xl leading-relaxed">{a.description}</p>
@@ -241,7 +251,7 @@ export default function CalendarUI() {
                </div>
              )}
 
-             {/* CHEF CLUB VIEW */}
+             {/* CHEF CLUB VIEW (Form with Pre-filled Name/Club) */}
              {profile.role === 'chef_club' && (
                <>
                  {actionsOnSelectedDate.length > 0 && (
@@ -264,6 +274,19 @@ export default function CalendarUI() {
 
                  <h2 className="text-xl font-extrabold mb-5 text-slate-900 border-t border-slate-200 pt-6">Nouvelle déclaration</h2>
                  <form onSubmit={handleSubmit} className="space-y-5">
+                   
+                   {/* Pre-filled identity block */}
+                   <div className="grid grid-cols-2 gap-4 bg-slate-50/50 p-3 rounded-2xl border border-slate-100">
+                     <div>
+                       <label className="block text-[10px] font-extrabold text-slate-500 mb-1.5 uppercase tracking-wider">Responsable</label>
+                       <input type="text" disabled value={profile.full_name} className="w-full p-2.5 bg-slate-100/80 border border-slate-200 rounded-xl text-slate-500 font-semibold cursor-not-allowed text-xs" />
+                     </div>
+                     <div>
+                       <label className="block text-[10px] font-extrabold text-slate-500 mb-1.5 uppercase tracking-wider">Club Assigné</label>
+                       <input type="text" disabled value={profile.club} className="w-full p-2.5 bg-slate-100/80 border border-slate-200 rounded-xl text-slate-500 font-semibold cursor-not-allowed text-xs truncate" />
+                     </div>
+                   </div>
+
                    <div>
                      <label className="block text-xs font-extrabold text-slate-500 mb-1.5 uppercase tracking-wider">Journée Internationale</label>
                      <select value={selectedJournee} onChange={(e) => setSelectedJournee(e.target.value)} className="w-full p-3.5 bg-white/50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-semibold text-slate-700 transition-all shadow-sm">
