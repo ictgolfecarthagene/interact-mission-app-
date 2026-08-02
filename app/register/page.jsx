@@ -33,7 +33,7 @@ export default function RegisterPage() {
       if (!res.ok) throw new Error(data.error);
 
       setStatusMsg('Compte créé avec succès ! Redirection...');
-      setTimeout(() => router.push('/'), 2000); // Redirects to your login page
+      setTimeout(() => router.push('/'), 2000); 
     } catch (err) {
       setStatusMsg(err.message);
     } finally {
@@ -65,7 +65,7 @@ export default function RegisterPage() {
               <div className="absolute z-50 w-full mt-2 bg-white/95 backdrop-blur-xl border border-slate-200 rounded-2xl shadow-xl max-h-48 overflow-y-auto">
                 <div className="p-2">
                   {filteredClubs.map(c => (
-                    <div key={c} onClick={() => { setClubSearch(c); setFormData({...formData, club: c}); setShowDropdown(false); }} className="p-3 hover:bg-indigo-50 cursor-pointer text-sm font-bold rounded-lg text-slate-700">{c}</div>
+                    <div key={c} onMouseDown={() => { setClubSearch(c); setFormData({...formData, club: c}); setShowDropdown(false); }} className="p-3 hover:bg-indigo-50 cursor-pointer text-sm font-bold rounded-lg text-slate-700">{c}</div>
                   ))}
                 </div>
               </div>
