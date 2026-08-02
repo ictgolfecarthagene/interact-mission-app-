@@ -3,37 +3,44 @@ import { NextResponse } from 'next/server';
 
 export async function POST(req) {
   try {
-    const { email, password, fullName, club } = await req.json();
+    const { fullName, email, password, club, type } = await req.json();
 
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-    // Creates the user in the secure Auth vault (auto-confirmed)
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    // 1. Create the user in Supabase Authentication
+    const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
-      email_confirm: true
     });
 
-    if (authError) throw authError;
+    if (authError) {
+      return NextResponse.json({ error: authError.message }, { status: 400 });
+    }
 
-    // Creates their public profile, automatically defaulting them to 'chef_club'
-    const { error: profileError } = await supabaseAdmin.from('profiles').insert([{
-      id: authData.user.id,
-      email,
-      full_name: fullName,
-      role: 'chef_club',
-      poste: 'Chef des actions internationales',
-      club: club
-    }]);
+    // 2. Save the user profile data to your 'users' table
+    const { error: dbError } = await supabase
+      .from('users')
+      .insert([
+        {
+          id: authData.user?.id, 
+          full_name: fullName,
+          email: email,
+          club: club,
+          type: type || 'club', // Saves 'club' or 'national'
+          is_verified: false,   // Locks the account until an admin approves it
+          role: 'chef_club'
+        }
+      ]);
 
-    if (profileError) throw profileError;
+    if (dbError) {
+      return NextResponse.json({ error: dbError.message }, { status: 400 });
+    }
 
-    return NextResponse.json({ message: "Compte créé avec succès" }, { status: 200 });
+    return NextResponse.json({ message: "Compte créé avec succès." }, { status: 200 });
 
   } catch (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ error: "Erreur interne du serveur." }, { status: 500 });
   }
 }

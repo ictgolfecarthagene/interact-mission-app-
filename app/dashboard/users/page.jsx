@@ -71,7 +71,8 @@ export default function UserManagementPage() {
       setStatusMsg(editMode ? 'Mise à jour réussie !' : 'Utilisateur créé avec succès !');
       
       if (!editMode) {
-        const instantNewUser = { id: Math.random().toString(), full_name: formData.fullName, email: formData.email, role: formData.role, poste: formData.poste, club: formData.role === 'chef_club' ? formData.club : null };
+        // Automatically assume admin-created users are verified
+        const instantNewUser = { id: Math.random().toString(), full_name: formData.fullName, email: formData.email, role: formData.role, poste: formData.poste, club: formData.role === 'chef_club' ? formData.club : null, is_verified: true };
         setUsers(prev => [instantNewUser, ...prev]);
       } else {
         const { data: updatedUsers } = await supabase.from('profiles').select('*').order('role', { ascending: true });
@@ -86,7 +87,6 @@ export default function UserManagementPage() {
     }
   };
 
-  // UPDATED: Now routes through our secure API to fully annihilate the user
   const handleDelete = async (id, name) => {
     if (!window.confirm(`Êtes-vous sûr de vouloir supprimer définitivement le profil de ${name} ?`)) return;
     
@@ -100,11 +100,26 @@ export default function UserManagementPage() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error);
       
-      // Remove from UI only after the backend confirms actual deletion
       setUsers(users.filter(u => u.id !== id));
-      
     } catch (err) {
       alert(`Erreur de suppression: ${err.message}`);
+    }
+  };
+
+  // NEW: Approve user function
+  const handleApprove = async (id, name) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ is_verified: true })
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      // Instantly update the UI without reloading
+      setUsers(users.map(u => u.id === id ? { ...u, is_verified: true } : u));
+    } catch (err) {
+      alert(`Erreur lors de l'approbation: ${err.message}`);
     }
   };
 
@@ -131,19 +146,23 @@ export default function UserManagementPage() {
 
         <div className="bg-white/60 backdrop-blur-xl rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/50 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[800px]">
+            <table className="w-full text-left border-collapse min-w-[900px]">
               <thead>
                 <tr className="bg-slate-900/5 text-slate-600 text-xs uppercase tracking-widest border-b border-slate-200/50">
                   <th className="p-5 font-extrabold">Nom & Email</th>
                   <th className="p-5 font-extrabold">Rôle & Poste</th>
                   <th className="p-5 font-extrabold">Club Assigné</th>
+                  <th className="p-5 font-extrabold">Statut</th>
                   <th className="p-5 font-extrabold text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200/50">
                 {users.map((u) => (
                   <tr key={u.id} className="hover:bg-white/50 transition-colors">
-                    <td className="p-5"><p className="font-bold text-slate-900">{u.full_name}</p><p className="text-xs font-medium text-slate-500 mt-1">{u.email}</p></td>
+                    <td className="p-5">
+                      <p className="font-bold text-slate-900">{u.full_name}</p>
+                      <p className="text-xs font-medium text-slate-500 mt-1">{u.email}</p>
+                    </td>
                     <td className="p-5">
                       <span className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase border ${u.role === 'chef_club' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : 'bg-teal-50 text-teal-700 border-teal-100'}`}>
                         {u.role === 'chef_mission_inter' ? 'Mission des actions internationales' : u.role.replace(/_/g, ' ')}
@@ -151,7 +170,27 @@ export default function UserManagementPage() {
                       <p className="text-xs text-slate-500 mt-2 font-semibold">{u.poste}</p>
                     </td>
                     <td className="p-5 font-bold text-slate-700">{u.club || '—'}</td>
+                    
+                    {/* NEW: Verification Status Badge */}
+                    <td className="p-5">
+                      {u.is_verified ? (
+                        <span className="px-3 py-1 bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-full text-xs font-bold">
+                          Validé
+                        </span>
+                      ) : (
+                        <span className="px-3 py-1 bg-amber-100 text-amber-700 border border-amber-200 rounded-full text-xs font-bold">
+                          En attente
+                        </span>
+                      )}
+                    </td>
+
                     <td className="p-5 text-right space-x-2">
+                      {/* NEW: Approve Button */}
+                      {!u.is_verified && (
+                        <button onClick={() => handleApprove(u.id, u.full_name)} className="text-emerald-600 font-bold hover:bg-emerald-50 px-3 py-2 rounded-lg text-sm transition-colors">
+                          Approuver
+                        </button>
+                      )}
                       <button onClick={() => openEditModal(u)} className="text-blue-600 font-bold hover:bg-blue-50 px-3 py-2 rounded-lg text-sm transition-colors">Modifier</button>
                       <button onClick={() => handleDelete(u.id, u.full_name)} disabled={u.id === profile.id} className="text-red-500 font-bold hover:bg-red-50 px-3 py-2 rounded-lg text-sm disabled:opacity-30">Retirer</button>
                     </td>
@@ -163,6 +202,7 @@ export default function UserManagementPage() {
         </div>
       </div>
 
+      {/* CREATE / EDIT MODAL - Unchanged */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-all">
           <div className="bg-white/80 backdrop-blur-2xl p-8 rounded-[2rem] max-w-xl w-full shadow-[0_20px_60px_rgb(0,0,0,0.1)] border border-white/60 relative max-h-[95vh] overflow-y-auto">
@@ -190,7 +230,7 @@ export default function UserManagementPage() {
                    <label className="block text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-2">Assigner un Club</label>
                    <input type="text" required value={clubSearch} onChange={(e) => { setClubSearch(e.target.value); setFormData({...formData, club: e.target.value}); setShowClubDropdown(true); }} onFocus={() => setShowClubDropdown(true)} onBlur={() => setTimeout(() => setShowClubDropdown(false), 200)} className="w-full p-4 bg-white/50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-semibold shadow-sm transition-all" placeholder="Tapez pour filtrer..." />
                    {showClubDropdown && filteredClubs.length > 0 && (
-                     <div className="absolute z-50 w-full mt-2 bg-white/90 backdrop-blur-xl border border-slate-200 rounded-2xl shadow-xl max-h-48 overflow-y-auto"><div className="p-2">{filteredClubs.map(c => <div key={c} onClick={() => { setClubSearch(c); setFormData({...formData, club: c}); setShowClubDropdown(false); }} className="p-3 hover:bg-indigo-50 cursor-pointer text-sm font-bold rounded-lg text-slate-700">{c}</div>)}</div></div>
+                     <div className="absolute z-50 w-full mt-2 bg-white/90 backdrop-blur-xl border border-slate-200 rounded-2xl shadow-xl max-h-48 overflow-y-auto"><div className="p-2">{filteredClubs.map(c => <div key={c} onMouseDown={() => { setClubSearch(c); setFormData({...formData, club: c}); setShowClubDropdown(false); }} className="p-3 hover:bg-indigo-50 cursor-pointer text-sm font-bold rounded-lg text-slate-700">{c}</div>)}</div></div>
                    )}
                  </div>
                ) : (
