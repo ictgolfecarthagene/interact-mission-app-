@@ -21,7 +21,7 @@ export async function POST(req) {
 
     // 2. Save the user profile data to your 'users' table
     const { error: dbError } = await supabase
-      .from('users')
+      .from('profiles')
       .insert([
         {
           id: authData.user?.id, 
