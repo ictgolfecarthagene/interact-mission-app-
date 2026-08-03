@@ -8,7 +8,7 @@ const CLUBS = ["IC Tunis Medina", "IC Mirabel Tunis", "IC North Africa", "IC Pil
 export default function RegisterPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({ fullName: '', email: '', password: '', club: '' });
-  const [accountType, setAccountType] = useState('club'); // 'club' or 'national'
+  const [accountType, setAccountType] = useState('club');
   const [clubSearch, setClubSearch] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -19,8 +19,6 @@ export default function RegisterPage() {
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    
-    // Assign "Comité National" as the club if that type is selected
     const finalClub = accountType === 'national' ? 'Comité National' : formData.club;
     
     if (!finalClub) return setStatusMsg('Veuillez sélectionner un club.');
@@ -38,7 +36,6 @@ export default function RegisterPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      // Updated success message for Admin Verification
       setStatusMsg('Compte créé avec succès ! En attente de validation par un administrateur.');
       setTimeout(() => router.push('/'), 4000); 
     } catch (err) {
@@ -60,7 +57,6 @@ export default function RegisterPage() {
         </div>
 
         <form onSubmit={handleRegister} className="space-y-5">
-          {/* Account Type Selector */}
           <div className="flex bg-slate-100 p-1 rounded-xl">
             <button type="button" onClick={() => setAccountType('club')} className={`flex-1 text-xs font-bold py-2 rounded-lg transition-all ${accountType === 'club' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500'}`}>Club Interact</button>
             <button type="button" onClick={() => setAccountType('national')} className={`flex-1 text-xs font-bold py-2 rounded-lg transition-all ${accountType === 'national' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500'}`}>Comité National</button>
@@ -71,7 +67,6 @@ export default function RegisterPage() {
             <input type="text" required autoComplete="name" value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} className="w-full p-4 bg-white/50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-semibold shadow-sm transition-all" />
           </div>
 
-          {/* Only show Club search if "Club Interact" is selected */}
           {accountType === 'club' && (
             <div className="relative">
               <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-2">Club Interact</label>

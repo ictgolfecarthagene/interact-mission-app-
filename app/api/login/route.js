@@ -21,7 +21,7 @@ export async function POST(req) {
 
     // 2. Fetch the user's profile to check their verification status
     const { data: userData, error: userError } = await supabase
-      .from('users')
+      .from('profiles')
       .select('*')
       .eq('email', email)
       .single();
