@@ -4,6 +4,8 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
+// 1. IMPORT THE APPROVE BUTTON COMPONENT
+import ApproveButton from '@/components/ApproveButton';
 
 const CLUBS = ["IC Tunis Medina", "IC Mirabel Tunis", "IC North Africa", "IC Pilote Ariana", "IC Bloom City", "IC Big South Tunis", "IC Tunis Cosmopolitan", "IC Tunis Doyen", "IC Tunis Inner City", "IC Tunis El Bey", "IC Anastasia", "IC Ennaser", "IC Tunis Golden Eagles", "IC Rey De Carthago", "IC Tinast Glory", "IC Didon Amilcar", "IC Tunis Golfe", "IC Opportunity", "IC Aquatic North", "IC Tunis Moon City", "IC Tunis Les Berges Du Lac", "IC Tunis Hannibal", "IC Amilcar Sidibousaid", "IC Sidibousaid", "IC Tunis César", "IC Carthage La Renaissance", "IC Tunis Belvédère", "IC Ariana Tines", "IC Ariana La Rose", "IC Saint Germain", "IC Maxula Prates", "IC Tunis Golfe Carthagène", "IC Megrine", "IC Tunis Amilcar", "IC Hammam Lif", "IC Boumhel El Bassatine", "IC Hammamet", "IC Nabeul Neapolis", "IC Graces El Mourouj", "IC Pragma Sousse", "IC Sousse", "IC Kairouan", "IC Ruspina Monastir", "IC Monastir Zone Sud", "IC Sfax Doyen", "IC Sfax Métropole", "IC Sfax Flambeau", "IC Sfax Sindbad", "IC Sfax Tamaris", "IC Gabes Oasis", "IC Djerba Flamingo"];
 const POSTS_NATIONAUX = ["Coordinateur", "Vice coordinateur", "Secretaire nationale", "Secretaire adj", "Chef du protocole nationale", "Chef du protocole adj", "Tresorier nationale", "Tresorier adj", "Chef mission des actions internationales"];
@@ -72,7 +74,6 @@ export default function UserManagementPage() {
       setStatusMsg(editMode ? 'Mise à jour réussie !' : 'Utilisateur créé avec succès !');
       
       if (!editMode) {
-        // Automatically assume admin-created users are verified
         const instantNewUser = { id: Math.random().toString(), full_name: formData.fullName, email: formData.email, role: formData.role, poste: formData.poste, club: formData.role === 'chef_club' ? formData.club : null, is_verified: true };
         setUsers(prev => [instantNewUser, ...prev]);
       } else {
@@ -104,23 +105,6 @@ export default function UserManagementPage() {
       setUsers(users.filter(u => u.id !== id));
     } catch (err) {
       alert(`Erreur de suppression: ${err.message}`);
-    }
-  };
-
-  // NEW: Approve user function
-  const handleApprove = async (id, name) => {
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ is_verified: true })
-        .eq('id', id);
-
-      if (error) throw error;
-      
-      // Instantly update the UI without reloading
-      setUsers(users.map(u => u.id === id ? { ...u, is_verified: true } : u));
-    } catch (err) {
-      alert(`Erreur lors de l'approbation: ${err.message}`);
     }
   };
 
@@ -172,7 +156,6 @@ export default function UserManagementPage() {
                     </td>
                     <td className="p-5 font-bold text-slate-700">{u.club || '—'}</td>
                     
-                    {/* NEW: Verification Status Badge */}
                     <td className="p-5">
                       {u.is_verified ? (
                         <span className="px-3 py-1 bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-full text-xs font-bold">
@@ -185,12 +168,10 @@ export default function UserManagementPage() {
                       )}
                     </td>
 
-                    <td className="p-5 text-right space-x-2">
-                      {/* NEW: Approve Button */}
+                    <td className="p-5 text-right space-x-2 flex justify-end items-center gap-2">
+                      {/* 2. USE THE COMPONENT INSTEAD OF THE RAW HTML BUTTON */}
                       {!u.is_verified && (
-                        <button onClick={() => handleApprove(u.id, u.full_name)} className="text-emerald-600 font-bold hover:bg-emerald-50 px-3 py-2 rounded-lg text-sm transition-colors">
-                          Approuver
-                        </button>
+                        <ApproveButton userId={u.id} isVerified={u.is_verified} />
                       )}
                       <button onClick={() => openEditModal(u)} className="text-blue-600 font-bold hover:bg-blue-50 px-3 py-2 rounded-lg text-sm transition-colors">Modifier</button>
                       <button onClick={() => handleDelete(u.id, u.full_name)} disabled={u.id === profile.id} className="text-red-500 font-bold hover:bg-red-50 px-3 py-2 rounded-lg text-sm disabled:opacity-30">Retirer</button>
@@ -203,7 +184,6 @@ export default function UserManagementPage() {
         </div>
       </div>
 
-      {/* CREATE / EDIT MODAL - Unchanged */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-all">
           <div className="bg-white/80 backdrop-blur-2xl p-8 rounded-[2rem] max-w-xl w-full shadow-[0_20px_60px_rgb(0,0,0,0.1)] border border-white/60 relative max-h-[95vh] overflow-y-auto">
