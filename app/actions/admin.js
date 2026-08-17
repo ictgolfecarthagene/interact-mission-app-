@@ -3,39 +3,51 @@
 import { createClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY 
-);
-
 export async function approveMember(userId) {
+  console.log("=== APPROVAL PROCESS STARTED ===");
+  console.log("1. Target User ID received:", userId);
+
   try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    console.log("2. Environment Variables Loaded:");
+    console.log(" - URL exists:", !!supabaseUrl);
+    console.log(" - Service Key exists:", !!serviceKey);
+    console.log(" - Is it the Service Key? (should start with eyJ):", serviceKey?.substring(0, 3) === 'eyJ');
+
+    const supabaseAdmin = createClient(supabaseUrl, serviceKey);
+
+    console.log("3. Sending UPDATE to Supabase...");
     const { data, error } = await supabaseAdmin
       .from('profiles')
       .update({ is_verified: true })
       .eq('id', userId)
-      .select(); // <-- CRITICAL: Forces Supabase to return the updated row
+      .select();
 
-    // 1. Catch actual database errors
+    console.log("4. Supabase Response:");
+    console.log(" - Error:", error ? error.message : "None");
+    console.log(" - Data updated:", data);
+
     if (error) {
-      console.error("Supabase Write Error:", error.message);
-      return { success: false, error: error.message };
+      return { success: false, error: `DB Error: ${error.message}` };
     }
 
-    // 2. Catch "Silent Failures" (0 rows updated due to RLS or wrong key)
     if (!data || data.length === 0) {
       return { 
         success: false, 
-        error: "Update blocked. Check if SUPABASE_SERVICE_ROLE_KEY is correct in .env.local!" 
+        error: "ZERO ROWS UPDATED. The User ID is wrong, or Vercel used the Anon key instead of the Service Role key." 
       };
     }
 
-    // 3. Purge the Next.js cache for the ENTIRE dashboard layout so the refresh works
+    console.log("5. Purging Vercel Cache...");
     revalidatePath('/', 'layout'); 
-
+    
+    console.log("=== APPROVAL PROCESS SUCCESS ===");
     return { success: true };
+
   } catch (error) {
-    console.error("Server Action Crash:", error.message);
+    console.error("SERVER CRASH:", error.message);
     return { success: false, error: error.message };
   }
 }
