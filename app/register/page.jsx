@@ -16,7 +16,11 @@ export default function RegisterPage() {
   const [statusMsg, setStatusMsg] = useState('');
 
   const filteredClubs = CLUBS.filter(c => c.toLowerCase().includes(clubSearch.toLowerCase()));
-
+  // Inside your /api/register route
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY // This key completely bypasses RLS
+  );
   const handleRegister = async (e) => {
     e.preventDefault();
     const finalClub = accountType === 'national' ? 'Comité National' : formData.club;
