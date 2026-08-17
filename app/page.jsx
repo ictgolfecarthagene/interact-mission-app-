@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link'; // Imported the Link component
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
@@ -87,6 +88,19 @@ export default function LoginPage() {
           >
             {loading ? 'Connexion en cours...' : 'Se connecter'}
           </button>
+          
+          {/* New Signup Section */}
+          <div className="mt-4 text-center">
+            <p className="text-sm text-gray-600">
+              Vous n'avez pas encore de compte ?{' '}
+              <Link 
+                href="/register" 
+                className="font-semibold text-blue-600 hover:text-blue-500 transition"
+              >
+                S'inscrire
+              </Link>
+            </p>
+          </div>
         </form>
       </div>
     </div>
