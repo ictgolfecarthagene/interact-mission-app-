@@ -61,6 +61,14 @@ export default function DashboardHome() {
           </Link>
 
           {profile?.role === 'chef_club' && (
+            <Link href="/dashboard/mes-actions" className="block p-8 bg-white/60 backdrop-blur-xl border border-white/50 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-lg hover:-translate-y-1 transition-all group">
+              <div className="h-14 w-14 bg-gradient-to-br from-emerald-100 to-teal-100 text-emerald-600 rounded-2xl flex items-center justify-center mb-5 text-2xl shadow-inner group-hover:scale-110 transition-transform">📋</div>
+              <h2 className="text-2xl font-bold text-slate-900">Mes Actions Soumises</h2>
+              <p className="text-slate-500 mt-2 font-medium">Consultez l'historique de vos actions et lisez les retours de la mission.</p>
+            </Link>
+          )}
+
+          {profile?.role === 'chef_club' && (
             <Link href="/dashboard/ahkili" className="block p-8 bg-white/60 backdrop-blur-xl border border-white/50 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-lg hover:-translate-y-1 transition-all group">
               <div className="h-14 w-14 bg-gradient-to-br from-indigo-100 to-purple-100 text-indigo-600 rounded-2xl flex items-center justify-center mb-5 text-2xl shadow-inner group-hover:scale-110 transition-transform">💬</div>
               <h2 className="text-2xl font-bold text-slate-900 font-arabic">أحكيلي</h2>

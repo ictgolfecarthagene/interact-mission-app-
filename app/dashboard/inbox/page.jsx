@@ -4,6 +4,9 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
+// Import the new Server Actions
+import { toggleArchiveAction, saveActionFeedback } from '@/app/actions/admin';
+
 export default function InboxPage() {
   const [profile, setProfile] = useState(null);
   const [actions, setActions] = useState([]);
@@ -37,24 +40,33 @@ export default function InboxPage() {
     loadData();
   }, [router]);
 
+  // NEW: Secure Archive Function
   const handleArchive = async (actionId) => {
-    const { error } = await supabase.from('submitted_actions').update({ archived: true }).eq('id', actionId);
-    if (!error) setActions(actions.map(a => a.id === actionId ? { ...a, archived: true } : a));
+    setActions(actions.map(a => a.id === actionId ? { ...a, archived: true } : a)); // Optimistic UI update
+    const result = await toggleArchiveAction(actionId, true);
+    if (!result.success) alert(`Erreur: ${result.error}`);
+    router.refresh();
   };
 
+  // NEW: Secure Unarchive Function
   const handleUnarchive = async (actionId) => {
-    const { error } = await supabase.from('submitted_actions').update({ archived: false }).eq('id', actionId);
-    if (!error) setActions(actions.map(a => a.id === actionId ? { ...a, archived: false } : a));
+    setActions(actions.map(a => a.id === actionId ? { ...a, archived: false } : a)); // Optimistic UI update
+    const result = await toggleArchiveAction(actionId, false);
+    if (!result.success) alert(`Erreur: ${result.error}`);
+    router.refresh();
   };
 
+  // NEW: Secure Feedback Function
   const handleSaveRemarque = async (actionId) => {
     const text = remarqueInputs[actionId];
     if (!text) return;
-    const { error } = await supabase.from('submitted_actions').update({ remarque: text }).eq('id', actionId);
-    if (!error) {
-      setActions(actions.map(a => a.id === actionId ? { ...a, remarque: text } : a));
-      setRemarqueInputs({...remarqueInputs, [actionId]: ''});
-    }
+    
+    setActions(actions.map(a => a.id === actionId ? { ...a, remarque: text } : a)); // Optimistic UI update
+    setRemarqueInputs({...remarqueInputs, [actionId]: ''});
+    
+    const result = await saveActionFeedback(actionId, text);
+    if (!result.success) alert(`Erreur: ${result.error}`);
+    router.refresh();
   };
 
   const openThread = async (thread) => {
