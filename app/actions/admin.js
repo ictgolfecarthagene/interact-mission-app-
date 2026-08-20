@@ -7,7 +7,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabaseAdmin = createClient(supabaseUrl, serviceKey);
 
-// 1. Existing function for User Verification
+// 1. Single User Verification
 export async function approveMember(userId) {
   try {
     const { data, error } = await supabaseAdmin
@@ -26,7 +26,25 @@ export async function approveMember(userId) {
   }
 }
 
-// 2. NEW: Function to Archive / Unarchive Actions
+// 2. NEW: Bulk User Verification
+export async function bulkApproveMembers(userIds) {
+  try {
+    const { error } = await supabaseAdmin
+      .from('profiles')
+      .update({ is_verified: true })
+      .in('id', userIds); // Selects multiple IDs at once!
+
+    if (error) throw error;
+
+    revalidatePath('/', 'layout'); 
+    return { success: true };
+  } catch (error) {
+    console.error("Bulk Approve Error:", error.message);
+    return { success: false, error: error.message };
+  }
+}
+
+// 3. Function to Archive / Unarchive Actions
 export async function toggleArchiveAction(actionId, isArchived) {
   try {
     const { error } = await supabaseAdmin
@@ -44,7 +62,7 @@ export async function toggleArchiveAction(actionId, isArchived) {
   }
 }
 
-// 3. NEW: Function to Save Feedback / Remarques
+// 4. Function to Save Feedback / Remarques
 export async function saveActionFeedback(actionId, text) {
   try {
     const { error } = await supabaseAdmin

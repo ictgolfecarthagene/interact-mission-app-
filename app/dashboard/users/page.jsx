@@ -3,9 +3,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-
-// 1. IMPORT THE APPROVE BUTTON COMPONENT
 import ApproveButton from '@/components/ApproveButton';
+import { bulkApproveMembers } from '@/app/actions/admin'; // Import new bulk action
 
 const CLUBS = ["IC Tunis Medina", "IC Mirabel Tunis", "IC North Africa", "IC Pilote Ariana", "IC Bloom City", "IC Big South Tunis", "IC Tunis Cosmopolitan", "IC Tunis Doyen", "IC Tunis Inner City", "IC Tunis El Bey", "IC Anastasia", "IC Ennaser", "IC Tunis Golden Eagles", "IC Rey De Carthago", "IC Tinast Glory", "IC Didon Amilcar", "IC Tunis Golfe", "IC Opportunity", "IC Aquatic North", "IC Tunis Moon City", "IC Tunis Les Berges Du Lac", "IC Tunis Hannibal", "IC Amilcar Sidibousaid", "IC Sidibousaid", "IC Tunis César", "IC Carthage La Renaissance", "IC Tunis Belvédère", "IC Ariana Tines", "IC Ariana La Rose", "IC Saint Germain", "IC Maxula Prates", "IC Tunis Golfe Carthagène", "IC Megrine", "IC Tunis Amilcar", "IC Hammam Lif", "IC Boumhel El Bassatine", "IC Hammamet", "IC Nabeul Neapolis", "IC Graces El Mourouj", "IC Pragma Sousse", "IC Sousse", "IC Kairouan", "IC Ruspina Monastir", "IC Monastir Zone Sud", "IC Sfax Doyen", "IC Sfax Métropole", "IC Sfax Flambeau", "IC Sfax Sindbad", "IC Sfax Tamaris", "IC Gabes Oasis", "IC Djerba Flamingo"];
 const POSTS_NATIONAUX = ["Coordinateur", "Vice coordinateur", "Secretaire nationale", "Secretaire adj", "Chef du protocole nationale", "Chef du protocole adj", "Tresorier nationale", "Tresorier adj", "Chef mission des actions internationales"];
@@ -16,16 +15,19 @@ export default function UserManagementPage() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
   const [editMode, setEditMode] = useState(false);
   const [editingUserId, setEditingUserId] = useState(null);
-  
   const [clubSearch, setClubSearch] = useState('');
   const [showClubDropdown, setShowClubDropdown] = useState(false);
-
   const [formData, setFormData] = useState({ email: '', password: '', fullName: '', role: 'chef_club', poste: 'Chef des actions internationales', club: '' });
+
+  // Bulk Action States
+  const [selectedUsers, setSelectedUsers] = useState([]);
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -41,6 +43,52 @@ export default function UserManagementPage() {
     }
     loadData();
   }, [router]);
+
+  // Bulk Selection Handlers
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedUsers(users.map(u => u.id));
+    } else {
+      setSelectedUsers([]);
+    }
+  };
+
+  const handleSelectUser = (id) => {
+    if (selectedUsers.includes(id)) {
+      setSelectedUsers(selectedUsers.filter(userId => userId !== id));
+    } else {
+      setSelectedUsers([...selectedUsers, id]);
+    }
+  };
+
+  const handleBulkApprove = async () => {
+    if (!window.confirm(`Approuver ${selectedUsers.length} utilisateurs ?`)) return;
+    setIsBulkProcessing(true);
+    const result = await bulkApproveMembers(selectedUsers);
+    
+    if (result.success) {
+      setUsers(users.map(u => selectedUsers.includes(u.id) ? { ...u, is_verified: true } : u));
+      setSelectedUsers([]);
+    } else {
+      alert("Erreur lors de l'approbation multiple.");
+    }
+    setIsBulkProcessing(false);
+  };
+
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`Attention ! Supprimer définitivement ${selectedUsers.length} utilisateurs ?`)) return;
+    setIsBulkProcessing(true);
+    
+    // Process deletes in parallel
+    const deletePromises = selectedUsers.map(id => 
+      fetch('/api/admin/delete-user', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
+    );
+    
+    await Promise.all(deletePromises);
+    setUsers(users.filter(u => !selectedUsers.includes(u.id)));
+    setSelectedUsers([]);
+    setIsBulkProcessing(false);
+  };
 
   const openCreateModal = () => {
     setEditMode(false);
@@ -91,17 +139,9 @@ export default function UserManagementPage() {
 
   const handleDelete = async (id, name) => {
     if (!window.confirm(`Êtes-vous sûr de vouloir supprimer définitivement le profil de ${name} ?`)) return;
-    
     try {
-      const response = await fetch('/api/admin/delete-user', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id })
-      });
-      
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error);
-      
+      const response = await fetch('/api/admin/delete-user', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+      if (!response.ok) throw new Error("Delete failed");
       setUsers(users.filter(u => u.id !== id));
     } catch (err) {
       alert(`Erreur de suppression: ${err.message}`);
@@ -117,7 +157,7 @@ export default function UserManagementPage() {
       <div className="fixed top-[-10%] left-[-10%] w-[500px] h-[500px] bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob z-0 pointer-events-none"></div>
       <div className="fixed top-[-10%] right-[-10%] w-[500px] h-[500px] bg-teal-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000 z-0 pointer-events-none"></div>
 
-      <div className="max-w-7xl mx-auto space-y-8 relative z-10">
+      <div className="max-w-7xl mx-auto space-y-6 relative z-10">
         <div className="bg-white/70 backdrop-blur-2xl p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/50 flex flex-col md:flex-row justify-between items-center gap-4">
           <div>
             <Link href="/dashboard" className="text-sm font-bold text-indigo-600 hover:text-indigo-800 transition mb-1 inline-block">← Retour au hub</Link>
@@ -129,11 +169,29 @@ export default function UserManagementPage() {
           </button>
         </div>
 
+        {/* BULK ACTION BAR */}
+        {selectedUsers.length > 0 && (
+          <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl flex justify-between items-center shadow-sm animate-fade-in">
+            <span className="text-indigo-800 font-extrabold text-sm">{selectedUsers.length} utilisateur(s) sélectionné(s)</span>
+            <div className="flex gap-3">
+              <button onClick={handleBulkApprove} disabled={isBulkProcessing} className="px-5 py-2 bg-emerald-500 text-white font-bold rounded-xl text-sm shadow-sm hover:bg-emerald-600 transition-colors disabled:opacity-50">
+                {isBulkProcessing ? 'Traitement...' : 'Approuver la sélection'}
+              </button>
+              <button onClick={handleBulkDelete} disabled={isBulkProcessing} className="px-5 py-2 bg-red-50 text-red-600 border border-red-200 font-bold rounded-xl text-sm shadow-sm hover:bg-red-100 transition-colors disabled:opacity-50">
+                Retirer la sélection
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="bg-white/60 backdrop-blur-xl rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/50 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[900px]">
               <thead>
                 <tr className="bg-slate-900/5 text-slate-600 text-xs uppercase tracking-widest border-b border-slate-200/50">
+                  <th className="p-5 font-extrabold w-10">
+                    <input type="checkbox" checked={selectedUsers.length === users.length && users.length > 0} onChange={handleSelectAll} className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+                  </th>
                   <th className="p-5 font-extrabold">Nom & Email</th>
                   <th className="p-5 font-extrabold">Rôle & Poste</th>
                   <th className="p-5 font-extrabold">Club Assigné</th>
@@ -143,14 +201,17 @@ export default function UserManagementPage() {
               </thead>
               <tbody className="divide-y divide-slate-200/50">
                 {users.map((u) => (
-                  <tr key={u.id} className="hover:bg-white/50 transition-colors">
+                  <tr key={u.id} className={`hover:bg-white/50 transition-colors ${selectedUsers.includes(u.id) ? 'bg-indigo-50/30' : ''}`}>
+                    <td className="p-5">
+                      <input type="checkbox" checked={selectedUsers.includes(u.id)} onChange={() => handleSelectUser(u.id)} className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+                    </td>
                     <td className="p-5">
                       <p className="font-bold text-slate-900">{u.full_name}</p>
                       <p className="text-xs font-medium text-slate-500 mt-1">{u.email}</p>
                     </td>
                     <td className="p-5">
                       <span className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase border ${u.role === 'chef_club' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : 'bg-teal-50 text-teal-700 border-teal-100'}`}>
-                        {u.role === 'chef_mission_inter' ? 'Mission des actions internationales' : u.role.replace(/_/g, ' ')}
+                        {u.role === 'chef_mission_inter' ? 'Mission des actions' : u.role.replace(/_/g, ' ')}
                       </span>
                       <p className="text-xs text-slate-500 mt-2 font-semibold">{u.poste}</p>
                     </td>
@@ -158,18 +219,13 @@ export default function UserManagementPage() {
                     
                     <td className="p-5">
                       {u.is_verified ? (
-                        <span className="px-3 py-1 bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-full text-xs font-bold">
-                          Validé
-                        </span>
+                        <span className="px-3 py-1 bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-full text-xs font-bold">Validé</span>
                       ) : (
-                        <span className="px-3 py-1 bg-amber-100 text-amber-700 border border-amber-200 rounded-full text-xs font-bold">
-                          En attente
-                        </span>
+                        <span className="px-3 py-1 bg-amber-100 text-amber-700 border border-amber-200 rounded-full text-xs font-bold">En attente</span>
                       )}
                     </td>
 
                     <td className="p-5 text-right space-x-2 flex justify-end items-center gap-2">
-                      {/* 2. USE THE COMPONENT INSTEAD OF THE RAW HTML BUTTON */}
                       {!u.is_verified && (
                         <ApproveButton userId={u.id} isVerified={u.is_verified} />
                       )}
@@ -184,6 +240,7 @@ export default function UserManagementPage() {
         </div>
       </div>
 
+      {/* MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-all">
           <div className="bg-white/80 backdrop-blur-2xl p-8 rounded-[2rem] max-w-xl w-full shadow-[0_20px_60px_rgb(0,0,0,0.1)] border border-white/60 relative max-h-[95vh] overflow-y-auto">
@@ -198,7 +255,20 @@ export default function UserManagementPage() {
                  </div>
                  <div>
                    <label className="block text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-2">Type d'accès</label>
-                   <select value={formData.role} onChange={(e) => { setFormData({...formData, role: e.target.value, poste: e.target.value === 'chef_club' ? 'Chef des actions internationales' : POSTS_NATIONAUX[0], club: ''}); setClubSearch(''); }} className="w-full p-4 bg-white/50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold shadow-sm transition-all">
+                   <select 
+                     value={formData.role} 
+                     onChange={(e) => { 
+                       const newRole = e.target.value;
+                       let newPoste = '';
+                       if (newRole === 'chef_club') newPoste = 'Chef des actions internationales';
+                       if (newRole === 'comite_national') newPoste = POSTS_NATIONAUX[0];
+                       if (newRole === 'chef_mission_inter') newPoste = 'Chef mission des actions internationales'; // Auto assign!
+                       
+                       setFormData({...formData, role: newRole, poste: newPoste, club: ''}); 
+                       setClubSearch(''); 
+                     }} 
+                     className="w-full p-4 bg-white/50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold shadow-sm transition-all"
+                   >
                      <option value="chef_club">Club Local</option>
                      <option value="comite_national">Comité National</option>
                      <option value="chef_mission_inter">Mission des actions internationales</option>
@@ -206,7 +276,8 @@ export default function UserManagementPage() {
                  </div>
                </div>
 
-               {formData.role === 'chef_club' ? (
+               {/* SMART DROPDOWN FIX: Only show club for clubs, only show poste for comite_national. Show NOTHING for mission! */}
+               {formData.role === 'chef_club' && (
                  <div className="relative">
                    <label className="block text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-2">Assigner un Club</label>
                    <input type="text" required value={clubSearch} onChange={(e) => { setClubSearch(e.target.value); setFormData({...formData, club: e.target.value}); setShowClubDropdown(true); }} onFocus={() => setShowClubDropdown(true)} onBlur={() => setTimeout(() => setShowClubDropdown(false), 200)} className="w-full p-4 bg-white/50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-semibold shadow-sm transition-all" placeholder="Tapez pour filtrer..." />
@@ -214,7 +285,9 @@ export default function UserManagementPage() {
                      <div className="absolute z-50 w-full mt-2 bg-white/90 backdrop-blur-xl border border-slate-200 rounded-2xl shadow-xl max-h-48 overflow-y-auto"><div className="p-2">{filteredClubs.map(c => <div key={c} onMouseDown={() => { setClubSearch(c); setFormData({...formData, club: c}); setShowClubDropdown(false); }} className="p-3 hover:bg-indigo-50 cursor-pointer text-sm font-bold rounded-lg text-slate-700">{c}</div>)}</div></div>
                    )}
                  </div>
-               ) : (
+               )}
+               
+               {formData.role === 'comite_national' && (
                  <div>
                    <label className="block text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-2">Poste National</label>
                    <select value={formData.poste} onChange={(e) => setFormData({...formData, poste: e.target.value})} className="w-full p-4 bg-white/50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold shadow-sm transition-all">{POSTS_NATIONAUX.map(poste => <option key={poste} value={poste}>{poste}</option>)}</select>
