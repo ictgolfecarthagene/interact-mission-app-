@@ -1,39 +1,53 @@
-'use server';
+import { supabase } from '@/lib/supabase';
+import ApproveButton from '@/components/ApproveButton';
 
-import { createClient } from '@supabase/supabase-js';
-import { revalidatePath } from 'next/cache';
+// Force Next.js to always fetch fresh data when loading this page
+export const dynamic = 'force-dynamic';
 
-// Initialize with SERVICE ROLE KEY to bypass Row Level Security
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
+export default async function AdminDashboard() {
+  // Fetch all profiles
+  const { data: users, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    return <div>Error loading users: {error.message}</div>;
   }
-);
 
-export async function approveMember(userId) {
-  try {
-    const { data, error } = await supabaseAdmin
-      .from('profiles')
-      .update({ is_verified: true })
-      .eq('id', userId)
-      .select();
+  return (
+    <div className="p-8 max-w-4xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6">Pending Registrations</h1>
+      
+      <div className="bg-white shadow-md rounded-lg overflow-hidden border">
+        {users?.length === 0 ? (
+          <p className="p-4 text-gray-500">No users found.</p>
+        ) : (
+          <ul className="divide-y divide-gray-200">
+            {users.map((user) => (
+              <li key={user.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
+                
+                {/* User Details */}
+                <div>
+                  <p className="font-medium text-gray-900">
+                    {user.full_name || 'Unknown User'}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {user.email || 'No email provided'}
+                  </p>
+                </div>
 
-    if (error) {
-      console.error('Supabase Error:', error.message);
-      return { success: false, error: error.message };
-    }
-
-    // Refresh the dashboard cache to show the updated status immediately
-    revalidatePath('/admin'); 
-
-    return { success: true, data };
-  } catch (err) {
-    console.error('Server Action Error:', err);
-    return { success: false, error: 'Failed to approve member' };
-  }
+                {/* The Approve Button Component */}
+                <ApproveButton 
+                  userId={user.id} 
+                  isVerified={user.is_verified} 
+                />
+                
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
 }
