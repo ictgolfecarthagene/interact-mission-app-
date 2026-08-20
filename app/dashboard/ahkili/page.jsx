@@ -21,7 +21,8 @@ export default function AhkiliThreadsPage() {
       const { data: userProfile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
       setProfile(userProfile);
       if (userProfile?.club) {
-        const { data: myThreads } = await supabase.from('ahkili_threads').select('*').eq('club', userProfile.club).order('created_at', { ascending: false });
+        // CHANGED: Now filters by user_id instead of club for complete privacy
+        const { data: myThreads } = await supabase.from('ahkili_threads').select('*').eq('user_id', userProfile.id).order('created_at', { ascending: false });
         setThreads(myThreads || []);
       }
     }

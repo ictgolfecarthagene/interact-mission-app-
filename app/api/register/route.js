@@ -3,7 +3,8 @@ import { NextResponse } from 'next/server';
 
 export async function POST(req) {
   try {
-    const { fullName, email, password, club, type } = await req.json();
+    // Destructure the newly passed 'poste' variable
+    const { fullName, email, password, club, type, poste } = await req.json();
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -19,7 +20,7 @@ export async function POST(req) {
       return NextResponse.json({ error: authError.message }, { status: 400 });
     }
 
-    // 2. Save the user profile data to your 'users' table
+    // 2. Save the user profile data to your 'profiles' table
     const { error: dbError } = await supabase
       .from('profiles')
       .insert([
@@ -28,9 +29,10 @@ export async function POST(req) {
           full_name: fullName,
           email: email,
           club: club,
-          type: type || 'club', // Saves 'club' or 'national'
+          poste: poste, // Saves the specific national post or default club post
+          type: type || 'club', 
           is_verified: false,   // Locks the account until an admin approves it
-          role: 'chef_club'
+          role: type === 'national' ? 'comite_national' : 'chef_club' // Auto-assigns base role
         }
       ]);
 

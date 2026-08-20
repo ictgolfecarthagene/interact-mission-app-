@@ -99,6 +99,14 @@ export default function DashboardHome() {
               <p className="text-slate-500 mt-2 font-medium">Ajouter, modifier ou supprimer des membres du portail.</p>
             </Link>
           )}
+
+          {/* NEW SETTINGS/PASSWORD CHANGE BUTTON (Visible to everyone) */}
+          <Link href="/dashboard/settings" className="block p-8 bg-white/60 backdrop-blur-xl border border-white/50 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-lg hover:-translate-y-1 transition-all group">
+            <div className="h-14 w-14 bg-gradient-to-br from-slate-200 to-gray-300 text-slate-700 rounded-2xl flex items-center justify-center mb-5 text-2xl shadow-inner group-hover:scale-110 transition-transform">⚙️</div>
+            <h2 className="text-2xl font-bold text-slate-900">Paramètres</h2>
+            <p className="text-slate-500 mt-2 font-medium">Modifiez votre mot de passe et gérez la sécurité de votre compte.</p>
+          </Link>
+
         </div>
       </div>
     </div>
