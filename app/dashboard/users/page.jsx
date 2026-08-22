@@ -4,10 +4,10 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ApproveButton from '@/components/ApproveButton';
-import { bulkApproveMembers } from '@/app/actions/admin'; // Import new bulk action
+import { bulkApproveMembers } from '@/app/actions/admin';
 
 const CLUBS = ["IC Tunis Medina", "IC Mirabel Tunis", "IC North Africa", "IC Pilote Ariana", "IC Bloom City", "IC Big South Tunis", "IC Tunis Cosmopolitan", "IC Tunis Doyen", "IC Tunis Inner City", "IC Tunis El Bey", "IC Anastasia", "IC Ennaser", "IC Tunis Golden Eagles", "IC Rey De Carthago", "IC Tinast Glory", "IC Didon Amilcar", "IC Tunis Golfe", "IC Opportunity", "IC Aquatic North", "IC Tunis Moon City", "IC Tunis Les Berges Du Lac", "IC Tunis Hannibal", "IC Amilcar Sidibousaid", "IC Sidibousaid", "IC Tunis César", "IC Carthage La Renaissance", "IC Tunis Belvédère", "IC Ariana Tines", "IC Ariana La Rose", "IC Saint Germain", "IC Maxula Prates", "IC Tunis Golfe Carthagène", "IC Megrine", "IC Tunis Amilcar", "IC Hammam Lif", "IC Boumhel El Bassatine", "IC Hammamet", "IC Nabeul Neapolis", "IC Graces El Mourouj", "IC Pragma Sousse", "IC Sousse", "IC Kairouan", "IC Ruspina Monastir", "IC Monastir Zone Sud", "IC Sfax Doyen", "IC Sfax Métropole", "IC Sfax Flambeau", "IC Sfax Sindbad", "IC Sfax Tamaris", "IC Gabes Oasis", "IC Djerba Flamingo"];
-const POSTS_NATIONAUX = ["Coordinateur", "Vice coordinateur", "Secretaire nationale", "Secretaire adjointe", "Chef du protocole nationale", "Chef du protocole adjointe", "Tresorier nationale", "Tresorier adjoint", ];
+const POSTS_NATIONAUX = ["Coordinateur", "Vice coordinateur", "Secretaire nationale", "Secretaire adj", "Chef du protocole nationale", "Chef du protocole adj", "Tresorier nationale", "Tresorier adj"];
 
 export default function UserManagementPage() {
   const [users, setUsers] = useState([]);
@@ -15,7 +15,6 @@ export default function UserManagementPage() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
@@ -25,7 +24,6 @@ export default function UserManagementPage() {
   const [showClubDropdown, setShowClubDropdown] = useState(false);
   const [formData, setFormData] = useState({ email: '', password: '', fullName: '', role: 'chef_club', poste: 'Chef des actions internationales', club: '' });
 
-  // Bulk Action States
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
 
@@ -44,7 +42,6 @@ export default function UserManagementPage() {
     loadData();
   }, [router]);
 
-  // Bulk Selection Handlers
   const handleSelectAll = (e) => {
     if (e.target.checked) {
       setSelectedUsers(users.map(u => u.id));
@@ -79,7 +76,6 @@ export default function UserManagementPage() {
     if (!window.confirm(`Attention ! Supprimer définitivement ${selectedUsers.length} utilisateurs ?`)) return;
     setIsBulkProcessing(true);
     
-    // Process deletes in parallel
     const deletePromises = selectedUsers.map(id => 
       fetch('/api/admin/delete-user', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
     );
@@ -169,7 +165,6 @@ export default function UserManagementPage() {
           </button>
         </div>
 
-        {/* BULK ACTION BAR */}
         {selectedUsers.length > 0 && (
           <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl flex justify-between items-center shadow-sm animate-fade-in">
             <span className="text-indigo-800 font-extrabold text-sm">{selectedUsers.length} utilisateur(s) sélectionné(s)</span>
@@ -240,7 +235,6 @@ export default function UserManagementPage() {
         </div>
       </div>
 
-      {/* MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-all">
           <div className="bg-white/80 backdrop-blur-2xl p-8 rounded-[2rem] max-w-xl w-full shadow-[0_20px_60px_rgb(0,0,0,0.1)] border border-white/60 relative max-h-[95vh] overflow-y-auto">
@@ -262,7 +256,7 @@ export default function UserManagementPage() {
                        let newPoste = '';
                        if (newRole === 'chef_club') newPoste = 'Chef des actions internationales';
                        if (newRole === 'comite_national') newPoste = POSTS_NATIONAUX[0];
-                       if (newRole === 'chef_mission_inter') newPoste = 'Chef mission des actions internationales'; // Auto assign!
+                       if (newRole === 'chef_mission_inter') newPoste = 'Chef mission des actions internationales';
                        
                        setFormData({...formData, role: newRole, poste: newPoste, club: ''}); 
                        setClubSearch(''); 
@@ -276,7 +270,6 @@ export default function UserManagementPage() {
                  </div>
                </div>
 
-               {/* SMART DROPDOWN FIX: Only show club for clubs, only show poste for comite_national. Show NOTHING for mission! */}
                {formData.role === 'chef_club' && (
                  <div className="relative">
                    <label className="block text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-2">Assigner un Club</label>

@@ -4,10 +4,11 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 const CLUBS = ["IC Tunis Medina", "IC Mirabel Tunis", "IC North Africa", "IC Pilote Ariana", "IC Bloom City", "IC Big South Tunis", "IC Tunis Cosmopolitan", "IC Tunis Doyen", "IC Tunis Inner City", "IC Tunis El Bey", "IC Anastasia", "IC Ennaser", "IC Tunis Golden Eagles", "IC Rey De Carthago", "IC Tinast Glory", "IC Didon Amilcar", "IC Tunis Golfe", "IC Opportunity", "IC Aquatic North", "IC Tunis Moon City", "IC Tunis Les Berges Du Lac", "IC Tunis Hannibal", "IC Amilcar Sidibousaid", "IC Sidibousaid", "IC Tunis César", "IC Carthage La Renaissance", "IC Tunis Belvédère", "IC Ariana Tines", "IC Ariana La Rose", "IC Saint Germain", "IC Maxula Prates", "IC Tunis Golfe Carthagène", "IC Megrine", "IC Tunis Amilcar", "IC Hammam Lif", "IC Boumhel El Bassatine", "IC Hammamet", "IC Nabeul Neapolis", "IC Graces El Mourouj", "IC Pragma Sousse", "IC Sousse", "IC Kairouan", "IC Ruspina Monastir", "IC Monastir Zone Sud", "IC Sfax Doyen", "IC Sfax Métropole", "IC Sfax Flambeau", "IC Sfax Sindbad", "IC Sfax Tamaris", "IC Gabes Oasis", "IC Djerba Flamingo"];
+const POSTS_NATIONAUX = ["Coordinateur", "Vice coordinateur", "Secretaire nationale", "Secretaire adj", "Chef du protocole nationale", "Chef du protocole adj", "Tresorier nationale", "Tresorier adj"];
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [formData, setFormData] = useState({ fullName: '', email: '', password: '', club: '' });
+  const [formData, setFormData] = useState({ fullName: '', email: '', password: '', club: '', poste: POSTS_NATIONAUX[0] });
   const [accountType, setAccountType] = useState('club');
   const [clubSearch, setClubSearch] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
@@ -20,8 +21,9 @@ export default function RegisterPage() {
   const handleRegister = async (e) => {
     e.preventDefault();
     const finalClub = accountType === 'national' ? 'Comité National' : formData.club;
+    const finalPoste = accountType === 'national' ? formData.poste : 'Chef des actions internationales';
     
-    if (!finalClub) return setStatusMsg('Veuillez sélectionner un club.');
+    if (accountType === 'club' && !finalClub) return setStatusMsg('Veuillez sélectionner un club.');
     
     setIsSubmitting(true);
     setStatusMsg('');
@@ -30,7 +32,7 @@ export default function RegisterPage() {
       const res = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, club: finalClub, type: accountType })
+        body: JSON.stringify({ ...formData, club: finalClub, type: accountType, poste: finalPoste })
       });
       
       const data = await res.json();
@@ -67,7 +69,7 @@ export default function RegisterPage() {
             <input type="text" required autoComplete="name" value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} className="w-full p-4 bg-white/50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-semibold shadow-sm transition-all" />
           </div>
 
-          {accountType === 'club' && (
+          {accountType === 'club' ? (
             <div className="relative">
               <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-2">Club Interact</label>
               <input type="text" required={accountType === 'club'} autoComplete="organization" value={clubSearch} onChange={e => { setClubSearch(e.target.value); setShowDropdown(true); }} onFocus={() => setShowDropdown(true)} onBlur={() => setTimeout(() => setShowDropdown(false), 200)} className="w-full p-4 bg-white/50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-semibold shadow-sm transition-all" placeholder="Rechercher votre club..." />
@@ -80,6 +82,15 @@ export default function RegisterPage() {
                   </div>
                 </div>
               )}
+            </div>
+          ) : (
+            <div>
+              <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-2">Poste National</label>
+              <select value={formData.poste} onChange={(e) => setFormData({...formData, poste: e.target.value})} className="w-full p-4 bg-white/50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold shadow-sm transition-all">
+                {POSTS_NATIONAUX.map(poste => (
+                  <option key={poste} value={poste}>{poste}</option>
+                ))}
+              </select>
             </div>
           )}
 

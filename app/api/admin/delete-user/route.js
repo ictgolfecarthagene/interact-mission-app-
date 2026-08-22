@@ -10,14 +10,15 @@ export async function POST(req) {
       process.env.SUPABASE_SERVICE_ROLE_KEY
     );
 
-    // 1. Force delete the profile data
-    await supabaseAdmin.from('profiles').delete().eq('id', id);
+    // 1. Force delete the profile data first (prevents Foreign Key blocks if CASCADE is not set)
+    const { error: profileError } = await supabaseAdmin.from('profiles').delete().eq('id', id);
+    if (profileError) throw profileError;
 
     // 2. Force delete the actual login credentials from the hidden Auth vault
     const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(id);
     if (authError) throw authError;
 
-    return NextResponse.json({ message: "Utilisateur supprimé avec succès" }, { status: 200 });
+    return NextResponse.json({ success: true, message: "Utilisateur supprimé avec succès" }, { status: 200 });
 
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
