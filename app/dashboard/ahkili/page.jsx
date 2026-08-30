@@ -14,6 +14,7 @@ export default function AhkiliThreadsPage() {
   const [newMessage, setNewMessage] = useState('');
   const router = useRouter();
 
+  // 1. Initial Load
   useEffect(() => {
     async function loadProfileAndThreads() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -21,13 +22,45 @@ export default function AhkiliThreadsPage() {
       const { data: userProfile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
       setProfile(userProfile);
       if (userProfile?.club) {
-        // CHANGED: Now filters by user_id instead of club for complete privacy
         const { data: myThreads } = await supabase.from('ahkili_threads').select('*').eq('user_id', userProfile.id).order('created_at', { ascending: false });
         setThreads(myThreads || []);
       }
     }
     loadProfileAndThreads();
   }, [router]);
+
+  // 2. SUPABASE REALTIME: Listen for live messages!
+  useEffect(() => {
+    // Only activate the live listener if a thread is currently open
+    if (!activeThread || !profile) return;
+
+    const channel = supabase
+      .channel(`chat_thread_${activeThread.id}`)
+      .on(
+        'postgres_changes',
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'ahkili_messages', 
+          filter: `thread_id=eq.${activeThread.id}` 
+        },
+        (payload) => {
+          // If the new message is from the OTHER person (the mission), add it to the screen!
+          if (payload.new.sender_id !== profile.id) {
+            setMessages((currentMessages) => [...currentMessages, payload.new]);
+            
+            // Silently mark this new message as read in the background
+            supabase.from('ahkili_messages').update({ status: 'read' }).eq('id', payload.new.id).then();
+          }
+        }
+      )
+      .subscribe();
+
+    // Clean up and close the tunnel when leaving the thread
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [activeThread, profile]);
 
   const openThread = async (thread) => {
     setActiveThread(thread);
@@ -50,8 +83,13 @@ export default function AhkiliThreadsPage() {
     e.preventDefault();
     if (!newMessage.trim() || !activeThread) return;
     const msgData = { thread_id: activeThread.id, sender_id: profile.id, message: newMessage, is_mission_reply: false };
-    const { error } = await supabase.from('ahkili_messages').insert([msgData]);
-    if (!error) { setMessages([...messages, { ...msgData, created_at: new Date().toISOString(), status: 'delivered' }]); setNewMessage(''); }
+    
+    // Optimistic UI: Instantly add your own message to the screen so it feels incredibly fast
+    setMessages([...messages, { ...msgData, created_at: new Date().toISOString(), status: 'delivered' }]); 
+    setNewMessage('');
+
+    // Then send it to the database in the background
+    await supabase.from('ahkili_messages').insert([msgData]);
   };
 
   if (!profile) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-pulse text-xl font-bold text-indigo-400">Chargement...</div></div>;
