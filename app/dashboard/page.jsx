@@ -30,12 +30,15 @@ export default function DashboardHome() {
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-pulse text-xl font-bold text-indigo-400">Chargement...</div></div>;
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 sm:p-8 relative font-sans overflow-hidden">
+    <div className="min-h-screen bg-slate-50 p-4 sm:p-8 relative font-sans overflow-hidden flex flex-col">
+      
+      {/* Liquid Glass Background Elements */}
       <div className="fixed top-[-10%] left-[-10%] w-[500px] h-[500px] bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob z-0 pointer-events-none"></div>
       <div className="fixed top-[-10%] right-[-10%] w-[500px] h-[500px] bg-teal-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000 z-0 pointer-events-none"></div>
 
-      <div className="max-w-6xl mx-auto space-y-8 relative z-10">
+      <div className="max-w-6xl mx-auto w-full space-y-8 relative z-10 flex flex-col flex-1">
         
+        {/* Header */}
         <div className="bg-white/70 backdrop-blur-2xl p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/50 flex flex-col md:flex-row justify-between items-center gap-4">
           <div><h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Tableau de Bord Central</h1></div>
           <div className="flex items-center gap-6">
@@ -49,21 +52,22 @@ export default function DashboardHome() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Dynamic Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-8">
           <Link href="/dashboard/calendar" className="block p-8 bg-white/60 backdrop-blur-xl border border-white/50 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-lg hover:-translate-y-1 transition-all group">
             <div className="h-14 w-14 bg-gradient-to-br from-blue-100 to-indigo-100 text-blue-600 rounded-2xl flex items-center justify-center mb-5 text-2xl shadow-inner group-hover:scale-110 transition-transform">📅</div>
             <h2 className="text-2xl font-bold text-slate-900">Calendrier des Actions</h2>
             <p className="text-slate-500 mt-2 font-medium">{profile?.role === 'chef_club' ? 'Accédez au calendrier pour déclarer votre travail.' : 'Visualisez les actions soumises par les clubs.'}</p>
           </Link>
 
-          {/* NEW: CARTE INTERACTIVE */}
+          {/* CARTE INTERACTIVE */}
           <Link href="/dashboard/foreign-clubs/map" className="block p-8 bg-white/60 backdrop-blur-xl border border-white/50 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-lg hover:-translate-y-1 transition-all group">
             <div className="h-14 w-14 bg-gradient-to-br from-sky-100 to-blue-200 text-sky-600 rounded-2xl flex items-center justify-center mb-5 text-2xl shadow-inner group-hover:scale-110 transition-transform">🌍</div>
             <h2 className="text-2xl font-bold text-slate-900">Carte Internationale</h2>
             <p className="text-slate-500 mt-2 font-medium">Explorez la base de données interactive des clubs étrangers partenaires.</p>
           </Link>
 
-          {/* NEW: SOUMETTRE UN CLUB */}
+          {/* SOUMETTRE UN CLUB */}
           <Link href="/dashboard/foreign-clubs/new" className="block p-8 bg-white/60 backdrop-blur-xl border border-white/50 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-lg hover:-translate-y-1 transition-all group">
             <div className="h-14 w-14 bg-gradient-to-br from-amber-100 to-orange-100 text-amber-600 rounded-2xl flex items-center justify-center mb-5 text-2xl shadow-inner group-hover:scale-110 transition-transform">🤝</div>
             <h2 className="text-2xl font-bold text-slate-900">Référencer un Club</h2>
@@ -116,6 +120,22 @@ export default function DashboardHome() {
             <p className="text-slate-500 mt-2 font-medium">Modifiez votre mot de passe et gérez la sécurité.</p>
           </Link>
         </div>
+
+        {/* FOOTER */}
+        <div className="mt-auto text-center pb-2">
+          <p className="text-sm font-medium text-slate-500">
+            Made with ❤️ by{' '}
+            <a 
+              href="https://instagram.com/_yessine_ben_fraj_" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="font-extrabold text-indigo-600 hover:text-indigo-800 hover:underline transition-colors"
+            >
+              Yessine
+            </a>
+          </p>
+        </div>
+
       </div>
     </div>
   );
