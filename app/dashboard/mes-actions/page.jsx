@@ -10,6 +10,7 @@ export default function MesActionsPage() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  // Replace the loadData useEffect with this:
   useEffect(() => {
     async function loadData() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -17,16 +18,18 @@ export default function MesActionsPage() {
 
       const { data: userProfile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
       
-      // Only allow club chefs to see this page
-      if (userProfile?.role !== 'chef_club') return router.push('/dashboard');
+      // God mode check bypass
+      if (user.email !== 'yessinebenfrj106@gmail.com' && userProfile?.role !== 'chef_club') {
+        return router.push('/dashboard');
+      }
       setProfile(userProfile);
 
-      // Fetch only actions submitted by this specific club
-      const { data: actionsData } = await supabase
-        .from('submitted_actions')
-        .select('*')
-        .eq('club', userProfile.club)
-        .order('created_at', { ascending: false });
+      // If God Mode, fetch ALL actions. Otherwise, fetch just the club's actions.
+      let query = supabase.from('submitted_actions').select('*').order('created_at', { ascending: false });
+      if (user.email !== 'yessinebenfrj106@gmail.com') {
+        query = query.eq('club', userProfile.club);
+      }
+      const { data: actionsData } = await query;
         
       setMyActions(actionsData || []);
       setLoading(false);

@@ -15,16 +15,21 @@ export default function AhkiliThreadsPage() {
   const router = useRouter();
 
   // 1. Initial Load
+  // Replace the loadProfileAndThreads useEffect with this:
   useEffect(() => {
     async function loadProfileAndThreads() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return router.push('/');
       const { data: userProfile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
       setProfile(userProfile);
-      if (userProfile?.club) {
-        const { data: myThreads } = await supabase.from('ahkili_threads').select('*').eq('user_id', userProfile.id).order('created_at', { ascending: false });
-        setThreads(myThreads || []);
+      
+      // If God Mode, show ALL threads. If normal club, show only their threads.
+      let query = supabase.from('ahkili_threads').select('*').order('created_at', { ascending: false });
+      if (user.email !== 'yessinebenfrj106@gmail.com' && userProfile?.club) {
+        query = query.eq('user_id', userProfile.id);
       }
+      const { data: myThreads } = await query;
+      setThreads(myThreads || []);
     }
     loadProfileAndThreads();
   }, [router]);

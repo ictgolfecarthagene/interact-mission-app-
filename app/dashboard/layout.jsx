@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 export default function DashboardLayout({ children }) {
   const [isVerified, setIsVerified] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isGodMode, setIsGodMode] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -14,6 +15,14 @@ export default function DashboardLayout({ children }) {
       
       if (!user) {
         router.push('/');
+        return;
+      }
+
+      // God Mode check
+      if (user.email === 'yessinebenfrj106@gmail.com') {
+        setIsGodMode(true);
+        setIsVerified(true);
+        setLoading(false);
         return;
       }
 
@@ -34,8 +43,7 @@ export default function DashboardLayout({ children }) {
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-pulse text-xl font-bold text-indigo-400">Vérification de sécurité...</div></div>;
 
-  // THE SHIELD: If they are not verified, show this screen and block the children pages.
-  if (isVerified === false) {
+  if (isVerified === false && !isGodMode) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 relative overflow-hidden">
         <div className="fixed top-[-10%] left-[-10%] w-[500px] h-[500px] bg-amber-200 rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob z-0"></div>
@@ -57,6 +65,5 @@ export default function DashboardLayout({ children }) {
     );
   }
 
-  // If they are verified, let them into the dashboard!
   return <>{children}</>;
 }
