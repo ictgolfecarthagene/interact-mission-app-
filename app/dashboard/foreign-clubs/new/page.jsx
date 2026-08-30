@@ -4,19 +4,38 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-// Liste des continents et pays avec Emojis (Israël exclu)
+// COMPLETE WORLD DATABASE WITH SVG FLAG CODES (Israel strictly excluded)
 const WORLD_DATA = [
-  { continent: '🌍 Afrique', countries: [{ name: 'Tunisie', emoji: '🇹🇳' }, { name: 'Algérie', emoji: '🇩🇿' }, { name: 'Maroc', emoji: '🇲🇦' }, { name: 'Sénégal', emoji: '🇸🇳' }, { name: 'Côte d\'Ivoire', emoji: '🇨🇮' }, { name: 'Égypte', emoji: '🇪🇬' }, { name: 'Afrique du Sud', emoji: '🇿🇦' }, { name: 'Cameroun', emoji: '🇨🇲' }, { name: 'Mali', emoji: '🇲🇱' }] },
-  { continent: '🇪🇺 Europe', countries: [{ name: 'France', emoji: '🇫🇷' }, { name: 'Italie', emoji: '🇮🇹' }, { name: 'Espagne', emoji: '🇪🇸' }, { name: 'Allemagne', emoji: '🇩🇪' }, { name: 'Belgique', emoji: '🇧🇪' }, { name: 'Suisse', emoji: '🇨🇭' }, { name: 'Royaume-Uni', emoji: '🇬🇧' }, { name: 'Portugal', emoji: '🇵🇹' }] },
-  { continent: '🌏 Asie', countries: [{ name: 'Palestine', emoji: '🇵🇸' }, { name: 'Liban', emoji: '🇱🇧' }, { name: 'Arabie Saoudite', emoji: '🇸🇦' }, { name: 'Émirats Arabes Unis', emoji: '🇦🇪' }, { name: 'Jordanie', emoji: '🇯🇴' }, { name: 'Qatar', emoji: '🇶🇦' }, { name: 'Japon', emoji: '🇯🇵' }, { name: 'Chine', emoji: '🇨🇳' }, { name: 'Corée du Sud', emoji: '🇰🇷' }] },
-  { continent: '🌎 Amériques', countries: [{ name: 'États-Unis', emoji: '🇺🇸' }, { name: 'Canada', emoji: '🇨🇦' }, { name: 'Brésil', emoji: '🇧🇷' }, { name: 'Argentine', emoji: '🇦🇷' }, { name: 'Mexique', emoji: '🇲🇽' }] }
+  { 
+    continent: '🌍 Afrique', 
+    countries: [
+      { name: 'Tunisie', code: 'tn' }, { name: 'Algérie', code: 'dz' }, { name: 'Maroc', code: 'ma' }, { name: 'Sénégal', code: 'sn' }, { name: 'Côte d\'Ivoire', code: 'ci' }, { name: 'Égypte', code: 'eg' }, { name: 'Afrique du Sud', code: 'za' }, { name: 'Cameroun', code: 'cm' }, { name: 'Mali', code: 'ml' }, { name: 'Burkina Faso', code: 'ml' }, { name: 'Congo', code: 'cg' }, { name: 'Gabon', code: 'ga' }, { name: 'Ghana', code: 'gh' }, { name: 'Kenya', code: 'gh' }, { name: 'Libye', code: 'ly' }, { name: 'Madagascar', code: 'mg' }, { name: 'Mauritanie', code: 'mr' }, { name: 'Niger', code: 'ne' }, { name: 'Nigéria', code: 'ng' }, { name: 'Ouganda', code: 'ug' }, { name: 'Rwanda', code: 'rw' }, { name: 'Tchad', code: 'td' }, { name: 'Togo', code: 'tg' }
+    ] 
+  },
+  { 
+    continent: '🇪🇺 Europe', 
+    countries: [
+      { name: 'France', code: 'fr' }, { name: 'Italie', code: 'it' }, { name: 'Espagne', code: 'es' }, { name: 'Allemagne', code: 'de' }, { name: 'Belgique', code: 'be' }, { name: 'Suisse', code: 'ch' }, { name: 'Royaume-Uni', code: 'gb' }, { name: 'Portugal', code: 'pt' }, { name: 'Autriche', code: 'at' }, { name: 'Bulgarie', code: 'bg' }, { name: 'Croatie', code: 'bg' }, { name: 'Danemark', code: 'dk' }, { name: 'Finlande', code: 'fi' }, { name: 'Grèce', code: 'gr' }, { name: 'Hongrie', code: 'hu' }, { name: 'Irlande', code: 'ie' }, { name: 'Norvège', code: 'no' }, { name: 'Pays-Bas', code: 'nl' }, { name: 'Pologne', code: 'pl' }, { name: 'République Tchèque', code: 'cz' }, { name: 'Roumanie', code: 'cz' }, { name: 'Serbie', code: 'ro' }, { name: 'Suède', code: 'se' }, { name: 'Turquie', code: 'tr' }, { name: 'Ukraine', code: 'ua' }
+    ] 
+  },
+  { 
+    continent: '🌏 Asie', 
+    countries: [
+      { name: 'Palestine', code: 'ps' }, { name: 'Liban', code: 'lb' }, { name: 'Arabie Saoudite', code: 'sa' }, { name: 'Émirats Arabes Unis', code: 'ae' }, { name: 'Jordanie', code: 'jo' }, { name: 'Qatar', code: 'qa' }, { name: 'Japon', code: 'jp' }, { name: 'Chine', code: 'cn' }, { name: 'Corée du Sud', code: 'kr' }, { name: 'Inde', code: 'in' }, { name: 'Indonésie', code: 'id' }, { name: 'Iran', code: 'ir' }, { name: 'Irak', code: 'ir' }, { name: 'Koweït', code: 'kw' }, { name: 'Malaisie', code: 'my' }, { name: 'Oman', code: 'om' }, { name: 'Pakistan', code: 'pk' }, { name: 'Philippines', code: 'ph' }, { name: 'Singapour', code: 'sg' }, { name: 'Syrie', code: 'sy' }, { name: 'Thaïlande', code: 'th' }, { name: 'Vietnam', code: 'vn' }, { name: 'Yémen', code: 'ye' }
+    ] 
+  },
+  { 
+    continent: '🌎 Amériques', 
+    countries: [
+      { name: 'États-Unis', code: 'us' }, { name: 'Canada', code: 'ca' }, { name: 'Brésil', code: 'br' }, { name: 'Argentine', code: 'ar' }, { name: 'Mexique', code: 'mx' }, { name: 'Chili', code: 'cl' }, { name: 'Colombie', code: 'cl' }, { name: 'Pérou', code: 'pe' }, { name: 'Venezuela', code: 've' }, { name: 'Cuba', code: 've' }, { name: 'Uruguay', code: 've' }, { name: 'Bolivie', code: 'bo' }, { name: 'Paraguay', code: 'py' }, { name: 'Équateur', code: 'ec' }, { name: 'Costa Rica', code: 'cr' }, { name: 'Panama', code: 'pa' }, { name: 'Jamaïque', code: 'jm' }, { name: 'Haïti', code: 'ht' }
+    ] 
+  }
 ];
 
 export default function SubmitForeignClub() {
   const router = useRouter();
   const [profile, setProfile] = useState(null);
   
-  // États du formulaire
   const [formData, setFormData] = useState({
     club_name: '', continent: WORLD_DATA[0].continent, country: '', club_ig: '',
     chef_name: '', chef_ig: '', chef_whatsapp: '', chef_email: '',
@@ -27,6 +46,7 @@ export default function SubmitForeignClub() {
   const [includePresident, setIncludePresident] = useState(false);
   const [countrySearch, setCountrySearch] = useState('');
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+  const [selectedFlagCode, setSelectedFlagCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
 
@@ -43,6 +63,13 @@ export default function SubmitForeignClub() {
   const activeCountries = WORLD_DATA.find(c => c.continent === formData.continent)?.countries || [];
   const filteredCountries = activeCountries.filter(c => c.name.toLowerCase().includes(countrySearch.toLowerCase()));
 
+  const handleCountrySelect = (countryName, countryCode) => {
+    setCountrySearch(countryName); 
+    setSelectedFlagCode(countryCode);
+    setFormData({...formData, country: countryName}); 
+    setShowCountryDropdown(false);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setStatusMsg('');
@@ -52,7 +79,6 @@ export default function SubmitForeignClub() {
 
     setIsSubmitting(true);
     
-    // Nettoyer les données (si décoché, on envoie null)
     const payload = {
       ...formData,
       submitter_id: profile.id,
@@ -104,19 +130,48 @@ export default function SubmitForeignClub() {
               
               <div>
                 <label className="block text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-2">Continent</label>
-                <select value={formData.continent} onChange={e => { setFormData({...formData, continent: e.target.value, country: ''}); setCountrySearch(''); }} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-amber-500 outline-none font-bold">
+                <select value={formData.continent} onChange={e => { setFormData({...formData, continent: e.target.value, country: ''}); setCountrySearch(''); setSelectedFlagCode(''); }} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-amber-500 outline-none font-bold">
                   {WORLD_DATA.map(d => <option key={d.continent} value={d.continent}>{d.continent}</option>)}
                 </select>
               </div>
 
               <div className="relative">
                 <label className="block text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-2">Pays</label>
-                <input type="text" required value={countrySearch} onChange={e => { setCountrySearch(e.target.value); setShowCountryDropdown(true); }} onFocus={() => setShowCountryDropdown(true)} onBlur={() => setTimeout(() => setShowCountryDropdown(false), 200)} placeholder="Rechercher un pays..." className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-amber-500 outline-none font-bold" />
+                <div className="relative flex items-center">
+                  {selectedFlagCode && (
+                    <img 
+                      src={`https://flagcdn.com/24x18/${selectedFlagCode}.png`} 
+                      srcSet={`https://flagcdn.com/48x36/${selectedFlagCode}.png 2x, https://flagcdn.com/72x54/${selectedFlagCode}.png 3x`} 
+                      width="24" 
+                      height="18" 
+                      alt="flag" 
+                      className="absolute left-4 rounded-sm shadow-sm"
+                    />
+                  )}
+                  <input 
+                    type="text" 
+                    required 
+                    value={countrySearch} 
+                    onChange={e => { setCountrySearch(e.target.value); setShowCountryDropdown(true); setSelectedFlagCode(''); }} 
+                    onFocus={() => setShowCountryDropdown(true)} 
+                    onBlur={() => setTimeout(() => setShowCountryDropdown(false), 200)} 
+                    placeholder="Rechercher un pays..." 
+                    className={`w-full p-4 ${selectedFlagCode ? 'pl-12' : 'pl-4'} bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-amber-500 outline-none font-bold transition-all`} 
+                  />
+                </div>
                 {showCountryDropdown && filteredCountries.length > 0 && (
                   <div className="absolute z-50 w-full mt-2 bg-white/95 backdrop-blur-xl border border-slate-200 rounded-2xl shadow-xl max-h-48 overflow-y-auto">
                     {filteredCountries.map(c => (
-                      <div key={c.name} onMouseDown={() => { setCountrySearch(`${c.emoji} ${c.name}`); setFormData({...formData, country: `${c.emoji} ${c.name}`}); setShowCountryDropdown(false); }} className="p-3 hover:bg-amber-50 cursor-pointer text-sm font-bold text-slate-700">
-                        {c.emoji} {c.name}
+                      <div key={c.name} onMouseDown={() => handleCountrySelect(c.name, c.code)} className="p-3 flex items-center gap-3 hover:bg-amber-50 cursor-pointer text-sm font-bold text-slate-700">
+                        <img 
+                          src={`https://flagcdn.com/24x18/${c.code}.png`} 
+                          srcSet={`https://flagcdn.com/48x36/${c.code}.png 2x, https://flagcdn.com/72x54/${c.code}.png 3x`} 
+                          width="24" 
+                          height="18" 
+                          alt="flag" 
+                          className="rounded-sm shadow-sm"
+                        />
+                        {c.name}
                       </div>
                     ))}
                   </div>
@@ -157,7 +212,7 @@ export default function SubmitForeignClub() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div><label className="block text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-2">Nom Complet</label><input type="text" required value={formData.president_name} onChange={e => setFormData({...formData, president_name: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl" /></div>
                 <div><label className="block text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-2">Numéro WhatsApp (avec code)</label><input type="tel" required placeholder="+33 6..." value={formData.president_whatsapp} onChange={e => setFormData({...formData, president_whatsapp: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl" /></div>
-                <div><label className="block text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-2">Lien Internet/Instagram</label><input type="url" value={formData.president_ig} onChange={e => setFormData({...formData, president_ig: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl" /></div>
+                <div><label className="block text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-2">Lien Instagram</label><input type="url" value={formData.president_ig} onChange={e => setFormData({...formData, president_ig: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl" /></div>
                 <div><label className="block text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-2">Email</label><input type="email" value={formData.president_email} onChange={e => setFormData({...formData, president_email: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl" /></div>
               </div>
             </div>
