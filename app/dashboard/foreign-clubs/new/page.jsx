@@ -1,0 +1,175 @@
+'use client';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+
+// Liste des continents et pays avec Emojis (Israël exclu)
+const WORLD_DATA = [
+  { continent: '🌍 Afrique', countries: [{ name: 'Tunisie', emoji: '🇹🇳' }, { name: 'Algérie', emoji: '🇩🇿' }, { name: 'Maroc', emoji: '🇲🇦' }, { name: 'Sénégal', emoji: '🇸🇳' }, { name: 'Côte d\'Ivoire', emoji: '🇨🇮' }, { name: 'Égypte', emoji: '🇪🇬' }, { name: 'Afrique du Sud', emoji: '🇿🇦' }, { name: 'Cameroun', emoji: '🇨🇲' }, { name: 'Mali', emoji: '🇲🇱' }] },
+  { continent: '🇪🇺 Europe', countries: [{ name: 'France', emoji: '🇫🇷' }, { name: 'Italie', emoji: '🇮🇹' }, { name: 'Espagne', emoji: '🇪🇸' }, { name: 'Allemagne', emoji: '🇩🇪' }, { name: 'Belgique', emoji: '🇧🇪' }, { name: 'Suisse', emoji: '🇨🇭' }, { name: 'Royaume-Uni', emoji: '🇬🇧' }, { name: 'Portugal', emoji: '🇵🇹' }] },
+  { continent: '🌏 Asie', countries: [{ name: 'Palestine', emoji: '🇵🇸' }, { name: 'Liban', emoji: '🇱🇧' }, { name: 'Arabie Saoudite', emoji: '🇸🇦' }, { name: 'Émirats Arabes Unis', emoji: '🇦🇪' }, { name: 'Jordanie', emoji: '🇯🇴' }, { name: 'Qatar', emoji: '🇶🇦' }, { name: 'Japon', emoji: '🇯🇵' }, { name: 'Chine', emoji: '🇨🇳' }, { name: 'Corée du Sud', emoji: '🇰🇷' }] },
+  { continent: '🌎 Amériques', countries: [{ name: 'États-Unis', emoji: '🇺🇸' }, { name: 'Canada', emoji: '🇨🇦' }, { name: 'Brésil', emoji: '🇧🇷' }, { name: 'Argentine', emoji: '🇦🇷' }, { name: 'Mexique', emoji: '🇲🇽' }] }
+];
+
+export default function SubmitForeignClub() {
+  const router = useRouter();
+  const [profile, setProfile] = useState(null);
+  
+  // États du formulaire
+  const [formData, setFormData] = useState({
+    club_name: '', continent: WORLD_DATA[0].continent, country: '', club_ig: '',
+    chef_name: '', chef_ig: '', chef_whatsapp: '', chef_email: '',
+    president_name: '', president_ig: '', president_whatsapp: '', president_email: ''
+  });
+  
+  const [includeChef, setIncludeChef] = useState(true);
+  const [includePresident, setIncludePresident] = useState(false);
+  const [countrySearch, setCountrySearch] = useState('');
+  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [statusMsg, setStatusMsg] = useState('');
+
+  useEffect(() => {
+    async function loadUser() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return router.push('/');
+      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      setProfile(data);
+    }
+    loadUser();
+  }, [router]);
+
+  const activeCountries = WORLD_DATA.find(c => c.continent === formData.continent)?.countries || [];
+  const filteredCountries = activeCountries.filter(c => c.name.toLowerCase().includes(countrySearch.toLowerCase()));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setStatusMsg('');
+
+    if (!formData.country) return setStatusMsg("Veuillez sélectionner un pays dans la liste.");
+    if (!includeChef && !includePresident) return setStatusMsg("Veuillez remplir les informations pour au moins un Chef des actions ou un Président.");
+
+    setIsSubmitting(true);
+    
+    // Nettoyer les données (si décoché, on envoie null)
+    const payload = {
+      ...formData,
+      submitter_id: profile.id,
+      chef_name: includeChef ? formData.chef_name : null,
+      chef_ig: includeChef ? formData.chef_ig : null,
+      chef_whatsapp: includeChef ? formData.chef_whatsapp : null,
+      chef_email: includeChef ? formData.chef_email : null,
+      president_name: includePresident ? formData.president_name : null,
+      president_ig: includePresident ? formData.president_ig : null,
+      president_whatsapp: includePresident ? formData.president_whatsapp : null,
+      president_email: includePresident ? formData.president_email : null,
+    };
+
+    const { error } = await supabase.from('foreign_clubs').insert([payload]);
+
+    if (error) {
+      setStatusMsg(`Erreur: ${error.message}`);
+      setIsSubmitting(false);
+    } else {
+      setStatusMsg("Club enregistré avec succès dans la base mondiale !");
+      setTimeout(() => router.push('/dashboard/foreign-clubs/map'), 2000);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 p-4 sm:p-8 relative font-sans overflow-hidden">
+      <div className="max-w-4xl mx-auto relative z-10 space-y-6">
+        
+        <div className="bg-white/70 backdrop-blur-2xl p-6 rounded-3xl shadow-sm border border-white/50">
+          <Link href="/dashboard" className="text-sm font-bold text-amber-600 hover:text-amber-800 transition mb-2 inline-block">← Retour</Link>
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Référencer un Club Étranger</h1>
+          <p className="text-slate-500 font-medium mt-1">Les soumissions sont anonymes (seule la Coordination Nationale voit l'auteur).</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          
+          {/* SECTION 1: CLUB */}
+          <div className="bg-white/80 backdrop-blur-xl p-8 rounded-3xl shadow-sm border border-white/50">
+            <h2 className="text-xl font-extrabold text-slate-900 mb-6 flex items-center gap-2"><span>🏢</span> Informations du Club</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-2">Nom du club étranger</label>
+                <input type="text" required value={formData.club_name} onChange={e => setFormData({...formData, club_name: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-amber-500 outline-none font-bold" />
+              </div>
+              <div>
+                <label className="block text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-2">Lien Instagram du club</label>
+                <input type="url" value={formData.club_ig} onChange={e => setFormData({...formData, club_ig: e.target.value})} placeholder="https://instagram.com/..." className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-amber-500 outline-none font-medium" />
+              </div>
+              
+              <div>
+                <label className="block text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-2">Continent</label>
+                <select value={formData.continent} onChange={e => { setFormData({...formData, continent: e.target.value, country: ''}); setCountrySearch(''); }} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-amber-500 outline-none font-bold">
+                  {WORLD_DATA.map(d => <option key={d.continent} value={d.continent}>{d.continent}</option>)}
+                </select>
+              </div>
+
+              <div className="relative">
+                <label className="block text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-2">Pays</label>
+                <input type="text" required value={countrySearch} onChange={e => { setCountrySearch(e.target.value); setShowCountryDropdown(true); }} onFocus={() => setShowCountryDropdown(true)} onBlur={() => setTimeout(() => setShowCountryDropdown(false), 200)} placeholder="Rechercher un pays..." className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-amber-500 outline-none font-bold" />
+                {showCountryDropdown && filteredCountries.length > 0 && (
+                  <div className="absolute z-50 w-full mt-2 bg-white/95 backdrop-blur-xl border border-slate-200 rounded-2xl shadow-xl max-h-48 overflow-y-auto">
+                    {filteredCountries.map(c => (
+                      <div key={c.name} onMouseDown={() => { setCountrySearch(`${c.emoji} ${c.name}`); setFormData({...formData, country: `${c.emoji} ${c.name}`}); setShowCountryDropdown(false); }} className="p-3 hover:bg-amber-50 cursor-pointer text-sm font-bold text-slate-700">
+                        {c.emoji} {c.name}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* TOGGLES */}
+          <div className="flex gap-4">
+            <label className={`flex-1 p-4 rounded-2xl border-2 cursor-pointer font-bold transition-all ${includeChef ? 'bg-amber-50 border-amber-500 text-amber-800' : 'bg-white border-slate-200 text-slate-500'}`}>
+              <input type="checkbox" checked={includeChef} onChange={e => setIncludeChef(e.target.checked)} className="hidden" />
+              ✓ Ajouter le Chef des Actions
+            </label>
+            <label className={`flex-1 p-4 rounded-2xl border-2 cursor-pointer font-bold transition-all ${includePresident ? 'bg-amber-50 border-amber-500 text-amber-800' : 'bg-white border-slate-200 text-slate-500'}`}>
+              <input type="checkbox" checked={includePresident} onChange={e => setIncludePresident(e.target.checked)} className="hidden" />
+              ✓ Ajouter le Président
+            </label>
+          </div>
+
+          {/* SECTION 2: CHEF */}
+          {includeChef && (
+            <div className="bg-white/80 backdrop-blur-xl p-8 rounded-3xl shadow-sm border border-amber-200">
+              <h2 className="text-xl font-extrabold text-slate-900 mb-6 flex items-center gap-2"><span>✈️</span> Chef des Actions Internationales</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div><label className="block text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-2">Nom Complet</label><input type="text" required value={formData.chef_name} onChange={e => setFormData({...formData, chef_name: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl" /></div>
+                <div><label className="block text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-2">Numéro WhatsApp (avec code)</label><input type="tel" required placeholder="+33 6..." value={formData.chef_whatsapp} onChange={e => setFormData({...formData, chef_whatsapp: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl" /></div>
+                <div><label className="block text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-2">Lien Instagram</label><input type="url" value={formData.chef_ig} onChange={e => setFormData({...formData, chef_ig: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl" /></div>
+                <div><label className="block text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-2">Email</label><input type="email" value={formData.chef_email} onChange={e => setFormData({...formData, chef_email: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl" /></div>
+              </div>
+            </div>
+          )}
+
+          {/* SECTION 3: PRESIDENT */}
+          {includePresident && (
+            <div className="bg-white/80 backdrop-blur-xl p-8 rounded-3xl shadow-sm border border-indigo-200">
+              <h2 className="text-xl font-extrabold text-slate-900 mb-6 flex items-center gap-2"><span>👑</span> Président du Club</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div><label className="block text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-2">Nom Complet</label><input type="text" required value={formData.president_name} onChange={e => setFormData({...formData, president_name: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl" /></div>
+                <div><label className="block text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-2">Numéro WhatsApp (avec code)</label><input type="tel" required placeholder="+33 6..." value={formData.president_whatsapp} onChange={e => setFormData({...formData, president_whatsapp: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl" /></div>
+                <div><label className="block text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-2">Lien Internet/Instagram</label><input type="url" value={formData.president_ig} onChange={e => setFormData({...formData, president_ig: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl" /></div>
+                <div><label className="block text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-2">Email</label><input type="email" value={formData.president_email} onChange={e => setFormData({...formData, president_email: e.target.value})} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl" /></div>
+              </div>
+            </div>
+          )}
+
+          <button type="submit" disabled={isSubmitting} className="w-full py-4 mt-6 bg-slate-900 text-white font-extrabold rounded-2xl hover:bg-slate-800 transition-all shadow-md hover:-translate-y-0.5 disabled:opacity-50">
+            {isSubmitting ? 'Enregistrement...' : 'Enregistrer le Club'}
+          </button>
+          
+          {statusMsg && <div className={`p-4 rounded-xl font-bold text-center text-sm shadow-sm border ${statusMsg.includes('succès') ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'}`}>{statusMsg}</div>}
+        </form>
+      </div>
+    </div>
+  );
+}

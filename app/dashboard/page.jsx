@@ -31,14 +31,11 @@ export default function DashboardHome() {
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 sm:p-8 relative font-sans overflow-hidden">
-      
-      {/* Liquid Glass Background Elements */}
       <div className="fixed top-[-10%] left-[-10%] w-[500px] h-[500px] bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob z-0 pointer-events-none"></div>
       <div className="fixed top-[-10%] right-[-10%] w-[500px] h-[500px] bg-teal-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000 z-0 pointer-events-none"></div>
 
       <div className="max-w-6xl mx-auto space-y-8 relative z-10">
         
-        {/* Header */}
         <div className="bg-white/70 backdrop-blur-2xl p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/50 flex flex-col md:flex-row justify-between items-center gap-4">
           <div><h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Tableau de Bord Central</h1></div>
           <div className="flex items-center gap-6">
@@ -52,19 +49,32 @@ export default function DashboardHome() {
           </div>
         </div>
 
-        {/* Dynamic Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Link href="/dashboard/calendar" className="block p-8 bg-white/60 backdrop-blur-xl border border-white/50 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-lg hover:-translate-y-1 transition-all group">
             <div className="h-14 w-14 bg-gradient-to-br from-blue-100 to-indigo-100 text-blue-600 rounded-2xl flex items-center justify-center mb-5 text-2xl shadow-inner group-hover:scale-110 transition-transform">📅</div>
             <h2 className="text-2xl font-bold text-slate-900">Calendrier des Actions</h2>
-            <p className="text-slate-500 mt-2 font-medium">{profile?.role === 'chef_club' ? 'Accédez au calendrier pour déclarer votre travail.' : 'Visualisez les actions soumises par les clubs par date.'}</p>
+            <p className="text-slate-500 mt-2 font-medium">{profile?.role === 'chef_club' ? 'Accédez au calendrier pour déclarer votre travail.' : 'Visualisez les actions soumises par les clubs.'}</p>
+          </Link>
+
+          {/* NEW: CARTE INTERACTIVE */}
+          <Link href="/dashboard/foreign-clubs/map" className="block p-8 bg-white/60 backdrop-blur-xl border border-white/50 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-lg hover:-translate-y-1 transition-all group">
+            <div className="h-14 w-14 bg-gradient-to-br from-sky-100 to-blue-200 text-sky-600 rounded-2xl flex items-center justify-center mb-5 text-2xl shadow-inner group-hover:scale-110 transition-transform">🌍</div>
+            <h2 className="text-2xl font-bold text-slate-900">Carte Internationale</h2>
+            <p className="text-slate-500 mt-2 font-medium">Explorez la base de données interactive des clubs étrangers partenaires.</p>
+          </Link>
+
+          {/* NEW: SOUMETTRE UN CLUB */}
+          <Link href="/dashboard/foreign-clubs/new" className="block p-8 bg-white/60 backdrop-blur-xl border border-white/50 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-lg hover:-translate-y-1 transition-all group">
+            <div className="h-14 w-14 bg-gradient-to-br from-amber-100 to-orange-100 text-amber-600 rounded-2xl flex items-center justify-center mb-5 text-2xl shadow-inner group-hover:scale-110 transition-transform">🤝</div>
+            <h2 className="text-2xl font-bold text-slate-900">Référencer un Club</h2>
+            <p className="text-slate-500 mt-2 font-medium">Ajoutez les coordonnées d'un club étranger à la base de données mondiale.</p>
           </Link>
 
           {profile?.role === 'chef_club' && (
             <Link href="/dashboard/mes-actions" className="block p-8 bg-white/60 backdrop-blur-xl border border-white/50 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-lg hover:-translate-y-1 transition-all group">
               <div className="h-14 w-14 bg-gradient-to-br from-emerald-100 to-teal-100 text-emerald-600 rounded-2xl flex items-center justify-center mb-5 text-2xl shadow-inner group-hover:scale-110 transition-transform">📋</div>
               <h2 className="text-2xl font-bold text-slate-900">Mes Actions Soumises</h2>
-              <p className="text-slate-500 mt-2 font-medium">Consultez l'historique de vos actions et lisez les retours de la mission.</p>
+              <p className="text-slate-500 mt-2 font-medium">Consultez l'historique de vos actions et lisez les retours.</p>
             </Link>
           )}
 
@@ -100,13 +110,11 @@ export default function DashboardHome() {
             </Link>
           )}
 
-          {/* NEW SETTINGS/PASSWORD CHANGE BUTTON (Visible to everyone) */}
           <Link href="/dashboard/settings" className="block p-8 bg-white/60 backdrop-blur-xl border border-white/50 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-lg hover:-translate-y-1 transition-all group">
             <div className="h-14 w-14 bg-gradient-to-br from-slate-200 to-gray-300 text-slate-700 rounded-2xl flex items-center justify-center mb-5 text-2xl shadow-inner group-hover:scale-110 transition-transform">⚙️</div>
             <h2 className="text-2xl font-bold text-slate-900">Paramètres</h2>
-            <p className="text-slate-500 mt-2 font-medium">Modifiez votre mot de passe et gérez la sécurité de votre compte.</p>
+            <p className="text-slate-500 mt-2 font-medium">Modifiez votre mot de passe et gérez la sécurité.</p>
           </Link>
-
         </div>
       </div>
     </div>
