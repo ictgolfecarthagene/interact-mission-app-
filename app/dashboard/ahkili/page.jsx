@@ -14,8 +14,9 @@ export default function AhkiliThreadsPage() {
   const [newMessage, setNewMessage] = useState('');
   const router = useRouter();
 
-  // 1. Initial Load
-  // Replace the loadProfileAndThreads useEffect with this:
+  // NEW: Custom popup dialog state
+  const [dialog, setDialog] = useState({ isOpen: false, message: '' });
+
   useEffect(() => {
     async function loadProfileAndThreads() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -23,9 +24,8 @@ export default function AhkiliThreadsPage() {
       const { data: userProfile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
       setProfile(userProfile);
       
-      // If God Mode, show ALL threads. If normal club, show only their threads.
       let query = supabase.from('ahkili_threads').select('*').order('created_at', { ascending: false });
-      if (user.email !== 'yessinebenfrj106@gmail.com' && userProfile?.club) {
+      if (user.email !== 'yessinebenfraj106@gmail.com' && userProfile?.club) {
         query = query.eq('user_id', userProfile.id);
       }
       const { data: myThreads } = await query;
@@ -34,37 +34,24 @@ export default function AhkiliThreadsPage() {
     loadProfileAndThreads();
   }, [router]);
 
-  // 2. SUPABASE REALTIME: Listen for live messages!
   useEffect(() => {
-    // Only activate the live listener if a thread is currently open
     if (!activeThread || !profile) return;
 
     const channel = supabase
       .channel(`chat_thread_${activeThread.id}`)
       .on(
         'postgres_changes',
-        { 
-          event: 'INSERT', 
-          schema: 'public', 
-          table: 'ahkili_messages', 
-          filter: `thread_id=eq.${activeThread.id}` 
-        },
+        { event: 'INSERT', schema: 'public', table: 'ahkili_messages', filter: `thread_id=eq.${activeThread.id}` },
         (payload) => {
-          // If the new message is from the OTHER person (the mission), add it to the screen!
           if (payload.new.sender_id !== profile.id) {
             setMessages((currentMessages) => [...currentMessages, payload.new]);
-            
-            // Silently mark this new message as read in the background
             supabase.from('ahkili_messages').update({ status: 'read' }).eq('id', payload.new.id).then();
           }
         }
       )
       .subscribe();
 
-    // Clean up and close the tunnel when leaving the thread
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [activeThread, profile]);
 
   const openThread = async (thread) => {
@@ -77,8 +64,14 @@ export default function AhkiliThreadsPage() {
   const handleCreateThread = async (e) => {
     e.preventDefault();
     if (!newSubject.trim() || !newMessage.trim()) return;
+    
     const { data: threadData, error: threadError } = await supabase.from('ahkili_threads').insert([{ user_id: profile.id, club: profile.club, subject: newSubject }]).select().single();
-    if (threadError) return alert(threadError.message);
+    
+    // REPLACED default alert() with custom popup
+    if (threadError) {
+      return setDialog({ isOpen: true, message: `Impossible de créer la discussion: ${threadError.message}` });
+    }
+
     await supabase.from('ahkili_messages').insert([{ thread_id: threadData.id, sender_id: profile.id, message: newMessage, is_mission_reply: false }]);
     setThreads([threadData, ...threads]);
     setIsCreating(false); setNewSubject(''); setNewMessage(''); openThread(threadData);
@@ -88,12 +81,8 @@ export default function AhkiliThreadsPage() {
     e.preventDefault();
     if (!newMessage.trim() || !activeThread) return;
     const msgData = { thread_id: activeThread.id, sender_id: profile.id, message: newMessage, is_mission_reply: false };
-    
-    // Optimistic UI: Instantly add your own message to the screen so it feels incredibly fast
     setMessages([...messages, { ...msgData, created_at: new Date().toISOString(), status: 'delivered' }]); 
     setNewMessage('');
-
-    // Then send it to the database in the background
     await supabase.from('ahkili_messages').insert([msgData]);
   };
 
@@ -101,15 +90,13 @@ export default function AhkiliThreadsPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 sm:p-8 relative font-sans overflow-hidden">
-      
       <div className="fixed top-[-10%] left-[-10%] w-[500px] h-[500px] bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob z-0 pointer-events-none"></div>
       <div className="fixed top-[-10%] right-[-10%] w-[500px] h-[500px] bg-teal-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000 z-0 pointer-events-none"></div>
 
       <div className="max-w-4xl mx-auto space-y-6 relative z-10">
-        
         <div className="bg-white/70 backdrop-blur-2xl p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/50 flex justify-between items-center">
           <div><Link href="/dashboard" className="text-sm font-bold text-indigo-600 hover:text-indigo-800 transition mb-1 inline-block">← Retour au hub</Link><h1 className="text-3xl font-extrabold text-slate-900 font-arabic">أحكيلي</h1></div>
-          <div className="text-right hidden sm:block"><p className="font-bold text-slate-900">{profile.full_name}</p><p className="text-sm font-medium text-slate-500">{profile.club}</p></div>
+          <div className="text-right hidden sm:block"><p className="font-bold text-slate-900">{profile.full_name}</p><p className="text-sm font-medium text-slate-500">{profile.club || 'Admin'}</p></div>
         </div>
 
         <div className="bg-white/60 backdrop-blur-xl rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/50 overflow-hidden min-h-[600px] flex flex-col">
@@ -122,7 +109,7 @@ export default function AhkiliThreadsPage() {
               <div className="p-6 space-y-4 flex-1 overflow-y-auto">
                 {threads.length === 0 ? <p className="text-center text-slate-400 mt-10 font-medium">Aucune discussion en cours.</p> : threads.map(t => (
                   <div key={t.id} onClick={() => openThread(t)} className="p-5 border border-slate-200 bg-white/50 rounded-2xl hover:bg-white hover:shadow-md cursor-pointer flex justify-between items-center transition-all group">
-                    <div><h3 className="font-bold text-slate-900 text-lg">{t.subject}</h3><p className="text-xs font-bold text-slate-500 mt-1">{new Date(t.created_at).toLocaleDateString('fr-FR')} - Cliquez pour ouvrir</p></div>
+                    <div><h3 className="font-bold text-slate-900 text-lg">{t.subject}</h3><p className="text-xs font-bold text-slate-500 mt-1">{new Date(t.created_at).toLocaleDateString('fr-FR')} - {t.club}</p></div>
                     <span className="text-indigo-600 font-extrabold group-hover:translate-x-1 transition-transform">→</span>
                   </div>
                 ))}
@@ -150,7 +137,7 @@ export default function AhkiliThreadsPage() {
                   <h2 className="text-lg font-bold text-white tracking-wide">{activeThread.subject}</h2>
                 </div>
               </div>
-              <div className="flex-1 p-6 overflow-y-auto space-y-4 bg-white/20">
+              <div className="flex-1 p-6 overflow-y-auto space-y-4 bg-white/20 flex flex-col">
                 {messages.map((msg, idx) => (
                   <div key={idx} className={`flex ${msg.is_mission_reply ? 'justify-start' : 'justify-end'}`}>
                     <div className={`max-w-[75%] p-4 rounded-2xl shadow-sm ${msg.is_mission_reply ? 'bg-white border border-slate-200 text-slate-800 rounded-tl-sm' : 'bg-indigo-600 text-white rounded-tr-sm'}`}>
@@ -171,6 +158,22 @@ export default function AhkiliThreadsPage() {
           )}
         </div>
       </div>
+
+      {/* CUSTOM UI POPUP MODAL (ERRORS) */}
+      {dialog.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-[2rem] p-8 max-w-sm w-full shadow-2xl border border-white/50 text-center">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 bg-red-100 text-red-600">
+              ✕
+            </div>
+            <h3 className="text-xl font-extrabold text-slate-900 mb-2">Attention</h3>
+            <p className="text-slate-500 font-medium mb-8 leading-relaxed">{dialog.message}</p>
+            <button onClick={() => setDialog({ isOpen: false, message: '' })} className="w-full py-3.5 bg-slate-900 text-white font-extrabold rounded-xl hover:bg-slate-800 transition-all shadow-md">
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -14,19 +14,25 @@ export default function RegisterPage() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [statusMsg, setStatusMsg] = useState('');
+  
+  // NEW: State for Custom Popup Modal
+  const [dialog, setDialog] = useState({ isOpen: false, message: '', type: 'error' });
 
   const filteredClubs = CLUBS.filter(c => c.toLowerCase().includes(clubSearch.toLowerCase()));
   
   const handleRegister = async (e) => {
     e.preventDefault();
-    const finalClub = accountType === 'national' ? 'Comité National' : formData.club;
-    const finalPoste = accountType === 'national' ? formData.poste : 'Chef des actions internationales';
     
-    if (accountType === 'club' && !finalClub) return setStatusMsg('Veuillez sélectionner un club.');
+    const finalClub = accountType === 'club' ? formData.club : 'Comité National';
+    let finalPoste = 'Chef des actions internationales';
+    if (accountType === 'national') finalPoste = formData.poste;
+    if (accountType === 'mission') finalPoste = 'Chef mission des actions internationales';
+    
+    if (accountType === 'club' && !finalClub) {
+      return setDialog({ isOpen: true, message: 'Veuillez sélectionner un club.', type: 'error' });
+    }
     
     setIsSubmitting(true);
-    setStatusMsg('');
 
     try {
       const res = await fetch('/api/register', {
@@ -38,10 +44,10 @@ export default function RegisterPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      setStatusMsg('Compte créé avec succès ! En attente de validation par un administrateur.');
+      setDialog({ isOpen: true, message: 'Compte créé avec succès ! En attente de validation par un administrateur.', type: 'success' });
       setTimeout(() => router.push('/'), 4000); 
     } catch (err) {
-      setStatusMsg(err.message);
+      setDialog({ isOpen: true, message: err.message, type: 'error' });
     } finally {
       setIsSubmitting(false);
     }
@@ -60,8 +66,9 @@ export default function RegisterPage() {
 
         <form onSubmit={handleRegister} className="space-y-5">
           <div className="flex bg-slate-100 p-1 rounded-xl">
-            <button type="button" onClick={() => setAccountType('club')} className={`flex-1 text-xs font-bold py-2 rounded-lg transition-all ${accountType === 'club' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500'}`}>Club Interact</button>
-            <button type="button" onClick={() => setAccountType('national')} className={`flex-1 text-xs font-bold py-2 rounded-lg transition-all ${accountType === 'national' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500'}`}>Comité National</button>
+            <button type="button" onClick={() => setAccountType('club')} className={`flex-1 text-[10px] font-bold py-2 rounded-lg transition-all ${accountType === 'club' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500'}`}>Club</button>
+            <button type="button" onClick={() => setAccountType('national')} className={`flex-1 text-[10px] font-bold py-2 rounded-lg transition-all ${accountType === 'national' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500'}`}>National</button>
+            <button type="button" onClick={() => setAccountType('mission')} className={`flex-1 text-[10px] font-bold py-2 rounded-lg transition-all ${accountType === 'mission' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500'}`}>Mission</button>
           </div>
 
           <div>
@@ -69,7 +76,7 @@ export default function RegisterPage() {
             <input type="text" required autoComplete="name" value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} className="w-full p-4 bg-white/50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-semibold shadow-sm transition-all" />
           </div>
 
-          {accountType === 'club' ? (
+          {accountType === 'club' && (
             <div className="relative">
               <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-2">Club Interact</label>
               <input type="text" required={accountType === 'club'} autoComplete="organization" value={clubSearch} onChange={e => { setClubSearch(e.target.value); setShowDropdown(true); }} onFocus={() => setShowDropdown(true)} onBlur={() => setTimeout(() => setShowDropdown(false), 200)} className="w-full p-4 bg-white/50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-semibold shadow-sm transition-all" placeholder="Rechercher votre club..." />
@@ -83,7 +90,9 @@ export default function RegisterPage() {
                 </div>
               )}
             </div>
-          ) : (
+          )}
+
+          {accountType === 'national' && (
             <div>
               <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-2">Poste National</label>
               <select value={formData.poste} onChange={(e) => setFormData({...formData, poste: e.target.value})} className="w-full p-4 bg-white/50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold shadow-sm transition-all">
@@ -118,16 +127,26 @@ export default function RegisterPage() {
           </button>
         </form>
 
-        {statusMsg && (
-          <div className={`mt-4 p-4 rounded-xl font-bold text-center text-sm shadow-sm ${statusMsg.includes('succès') ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>
-            {statusMsg}
-          </div>
-        )}
-
         <div className="mt-6 text-center">
           <Link href="/" className="text-sm font-bold text-indigo-600 hover:text-indigo-800">Déjà un compte ? Connectez-vous.</Link>
         </div>
       </div>
+
+      {/* CUSTOM UI POPUP MODAL */}
+      {dialog.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-[2rem] p-8 max-w-sm w-full shadow-2xl border border-white/50 text-center">
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 ${dialog.type === 'success' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+              {dialog.type === 'success' ? '✓' : '✕'}
+            </div>
+            <h3 className="text-xl font-extrabold text-slate-900 mb-2">{dialog.type === 'success' ? 'Succès' : 'Attention'}</h3>
+            <p className="text-slate-500 font-medium mb-8 leading-relaxed">{dialog.message}</p>
+            <button onClick={() => setDialog({ isOpen: false })} className="w-full py-3.5 bg-slate-900 text-white font-extrabold rounded-xl hover:bg-slate-800 transition-all">
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

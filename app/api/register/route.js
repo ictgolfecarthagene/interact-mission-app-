@@ -3,14 +3,12 @@ import { NextResponse } from 'next/server';
 
 export async function POST(req) {
   try {
-    // Destructure the newly passed 'poste' variable
     const { fullName, email, password, club, type, poste } = await req.json();
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-    // 1. Create the user in Supabase Authentication
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
@@ -20,7 +18,11 @@ export async function POST(req) {
       return NextResponse.json({ error: authError.message }, { status: 400 });
     }
 
-    // 2. Save the user profile data to your 'profiles' table
+    // Determine correct role based on the selected tab
+    let assignedRole = 'chef_club';
+    if (type === 'national') assignedRole = 'comite_national';
+    if (type === 'mission') assignedRole = 'chef_mission_inter';
+
     const { error: dbError } = await supabase
       .from('profiles')
       .insert([
@@ -29,10 +31,10 @@ export async function POST(req) {
           full_name: fullName,
           email: email,
           club: club,
-          poste: poste, // Saves the specific national post or default club post
+          poste: poste,
           type: type || 'club', 
-          is_verified: false,   // Locks the account until an admin approves it
-          role: type === 'national' ? 'comite_national' : 'chef_club' // Auto-assigns base role
+          is_verified: false,
+          role: assignedRole
         }
       ]);
 

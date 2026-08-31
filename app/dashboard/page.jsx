@@ -7,7 +7,7 @@ import Link from 'next/link';
 export default function DashboardHome() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState('chef_club'); // Default view for God Mode
+  const [viewMode, setViewMode] = useState('chef_club');
   const router = useRouter();
 
   useEffect(() => {
@@ -16,10 +16,9 @@ export default function DashboardHome() {
       if (!user) return router.push('/');
       const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
       
-      // If God Mode, store actual profile but allow view switching
       setProfile(data);
-      if (user.email !== 'yessinebenfrj106@gmail.com') {
-        setViewMode(data.role); // Standard users are locked to their own role
+      if (user.email !== 'yessinebenfraj106@gmail.com') {
+        setViewMode(data.role); 
       }
       setLoading(false);
     }
@@ -33,7 +32,7 @@ export default function DashboardHome() {
     return (splitName[0][0] + splitName[splitName.length - 1][0]).toUpperCase();
   };
 
-  const isGodMode = profile?.email === 'yessinebenfrj106@gmail.com';
+  const isGodMode = profile?.email === 'yessinebenfraj106@gmail.com';
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-pulse text-xl font-bold text-indigo-400">Chargement...</div></div>;
 
@@ -45,6 +44,7 @@ export default function DashboardHome() {
 
       <div className="max-w-6xl mx-auto w-full space-y-8 relative z-10 flex flex-col flex-1">
         
+        {/* VIEW MODE SWITCHER (ONLY FOR YOU) */}
         {isGodMode && (
           <div className="bg-red-50 border border-red-200 p-4 rounded-2xl flex justify-between items-center shadow-sm">
             <span className="text-red-800 font-extrabold text-sm flex items-center gap-2">👑 GOD MODE ACTIF</span>
