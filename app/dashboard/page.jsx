@@ -170,7 +170,7 @@ export default function DashboardHome() {
 
         <div className="mt-auto text-center pb-2">
           <p className="text-sm font-medium text-slate-500">
-            Made with ❤️ by{' '}
+            By{' '}
             <a 
               href="https://instagram.com/_yessine_ben_fraj_" 
               target="_blank" 
