@@ -3,8 +3,6 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-
-// Import the new Server Actions
 import { toggleArchiveAction, saveActionFeedback } from '@/app/actions/admin';
 
 export default function InboxPage() {
@@ -26,42 +24,47 @@ export default function InboxPage() {
       if (!user) return router.push('/');
 
       const { data: userProfile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-      if (userProfile?.role === 'chef_club') return router.push('/dashboard');
+      
+      // Allow God Mode
+      if (user.email !== 'yessinebenfraj106@gmail.com' && userProfile?.role === 'chef_club') {
+        return router.push('/dashboard');
+      }
       setProfile(userProfile);
 
       const { data: actionsData } = await supabase.from('submitted_actions').select('*').order('created_at', { ascending: false });
       setActions(actionsData || []);
 
-      if (userProfile?.role === 'chef_mission_inter') {
-        const { data: threadData } = await supabase.from('ahkili_threads').select('*').order('created_at', { ascending: false });
+      if (userProfile?.role === 'chef_mission_inter' || user.email === 'yessinebenfraj106@gmail.com') {
+        // FETCH THREADS WITH CREATOR'S NAME
+        const { data: threadData } = await supabase
+          .from('ahkili_threads')
+          .select('*, profiles(full_name)')
+          .order('created_at', { ascending: false });
         setThreads(threadData || []);
       }
     }
     loadData();
   }, [router]);
 
-  // NEW: Secure Archive Function
   const handleArchive = async (actionId) => {
-    setActions(actions.map(a => a.id === actionId ? { ...a, archived: true } : a)); // Optimistic UI update
+    setActions(actions.map(a => a.id === actionId ? { ...a, archived: true } : a)); 
     const result = await toggleArchiveAction(actionId, true);
     if (!result.success) alert(`Erreur: ${result.error}`);
     router.refresh();
   };
 
-  // NEW: Secure Unarchive Function
   const handleUnarchive = async (actionId) => {
-    setActions(actions.map(a => a.id === actionId ? { ...a, archived: false } : a)); // Optimistic UI update
+    setActions(actions.map(a => a.id === actionId ? { ...a, archived: false } : a)); 
     const result = await toggleArchiveAction(actionId, false);
     if (!result.success) alert(`Erreur: ${result.error}`);
     router.refresh();
   };
 
-  // NEW: Secure Feedback Function
   const handleSaveRemarque = async (actionId) => {
     const text = remarqueInputs[actionId];
     if (!text) return;
     
-    setActions(actions.map(a => a.id === actionId ? { ...a, remarque: text } : a)); // Optimistic UI update
+    setActions(actions.map(a => a.id === actionId ? { ...a, remarque: text } : a)); 
     setRemarqueInputs({...remarqueInputs, [actionId]: ''});
     
     const result = await saveActionFeedback(actionId, text);
@@ -71,7 +74,13 @@ export default function InboxPage() {
 
   const openThread = async (thread) => {
     setActiveThread(thread);
-    const { data: msgs } = await supabase.from('ahkili_messages').select('*').eq('thread_id', thread.id).order('created_at', { ascending: true });
+    // FETCH MESSAGES WITH SENDER'S FULL NAME
+    const { data: msgs } = await supabase
+      .from('ahkili_messages')
+      .select('*, profiles(full_name)')
+      .eq('thread_id', thread.id)
+      .order('created_at', { ascending: true });
+    
     setMessages(msgs || []);
     await supabase.from('ahkili_messages').update({ status: 'read' }).eq('thread_id', thread.id).eq('is_mission_reply', false).eq('status', 'delivered');
   };
@@ -93,12 +102,12 @@ export default function InboxPage() {
     return (splitName.length === 1 ? splitName[0][0] : splitName[0][0] + splitName[splitName.length - 1][0]).toUpperCase();
   };
 
-  if (!profile || profile.role === 'chef_club') return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><div className="animate-pulse font-bold text-xl text-indigo-400">Chargement...</div></div>;
+  if (!profile) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><div className="animate-pulse font-bold text-xl text-indigo-400">Chargement...</div></div>;
 
   const filteredActions = actions.filter(a => viewMode === 'active' ? !a.archived : a.archived);
 
   // COMITE NATIONAL VIEW
-  if (profile.role === 'comite_national') {
+  if (profile.role === 'comite_national' && profile.email !== 'yessinebenfraj106@gmail.com') {
     return (
       <div className="min-h-screen bg-slate-50 p-4 sm:p-8 relative font-sans overflow-hidden">
         <div className="fixed top-[-10%] left-[-10%] w-[500px] h-[500px] bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob z-0 pointer-events-none"></div>
@@ -132,7 +141,11 @@ export default function InboxPage() {
                 <tbody className="divide-y divide-slate-200/50">
                   {filteredActions.length === 0 ? <tr><td colSpan="3" className="p-12 text-center text-slate-500 font-medium italic">Aucune action.</td></tr> : filteredActions.map(action => (
                     <tr key={action.id} className="hover:bg-white/60 transition-colors group">
-                      <td className="p-5"><p className="font-bold text-slate-900 text-base">{action.nom_action}</p><p className="font-bold text-indigo-600 text-sm mt-1">{action.club}</p></td>
+                      <td className="p-5">
+                        <p className="font-bold text-slate-900 text-base">{action.nom_action}</p>
+                        <p className="font-bold text-indigo-600 text-sm mt-1">{action.club}</p>
+                        {action.submitter_name && <span className="text-[10px] font-extrabold text-slate-500 mt-2 block">👤 SOUMIS PAR: {action.submitter_name}</span>}
+                      </td>
                       <td className="p-5"><span className="inline-flex items-center px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase tracking-wider bg-teal-50 text-teal-700 border border-teal-100 shadow-sm">{action.journee_name}</span></td>
                       <td className="p-5 text-right space-y-2">
                         <div className="flex justify-end gap-2">
@@ -152,7 +165,7 @@ export default function InboxPage() {
     );
   }
 
-  // CHEF MISSION VIEW
+  // CHEF MISSION / ADMIN VIEW
   return (
     <div className="min-h-screen bg-slate-50 p-4 sm:p-8 relative font-sans overflow-hidden">
       <div className="fixed top-[-10%] left-[-10%] w-[500px] h-[500px] bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob z-0 pointer-events-none"></div>
@@ -161,11 +174,12 @@ export default function InboxPage() {
         <div className="bg-white/70 backdrop-blur-2xl p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/50 flex flex-col md:flex-row justify-between items-center gap-4">
           <div><Link href="/dashboard" className="text-sm font-bold text-indigo-600 hover:text-indigo-800 transition mb-1 inline-block">← Retour au hub</Link><h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Boîte de Réception Centrale</h1></div>
           <div className="flex items-center gap-4">
-            <div className="text-right hidden sm:block"><p className="font-bold text-slate-900">{profile.full_name}</p><p className="text-sm text-slate-500 font-medium">{profile.poste}</p></div>
+            <div className="text-right hidden sm:block"><p className="font-bold text-slate-900">{profile.full_name}</p><p className="text-sm text-slate-500 font-medium">{profile.email === 'yessinebenfraj106@gmail.com' ? 'Top Admin' : profile.poste}</p></div>
             <div className="h-14 w-14 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 text-white flex items-center justify-center font-extrabold text-xl shadow-md ring-2 ring-indigo-100">{getInitials(profile.full_name)}</div>
           </div>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          
           <div className="bg-white/70 backdrop-blur-xl rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/50 overflow-hidden flex flex-col h-[700px]">
             <div className="bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-5 shrink-0 flex justify-between items-center">
               <h2 className="text-xl font-bold text-white tracking-wide">📥 Actions {viewMode === 'active' ? 'Soumises' : 'Archivées'}</h2>
@@ -202,6 +216,7 @@ export default function InboxPage() {
               ))}
             </div>
           </div>
+          
           <div className="bg-white/70 backdrop-blur-xl rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/50 overflow-hidden flex flex-col h-[700px]">
             {!activeThread ? (
               <>
@@ -209,7 +224,12 @@ export default function InboxPage() {
                 <div className="p-6 overflow-y-auto flex-1 bg-slate-50/30 space-y-3">
                   {threads.length === 0 ? <p className="text-slate-500 font-medium italic text-center mt-10">Aucune discussion.</p> : threads.map(t => (
                     <button key={t.id} onClick={() => openThread(t)} className="w-full text-left p-5 bg-white/80 backdrop-blur-md border border-slate-200/50 rounded-2xl shadow-sm hover:shadow-md hover:border-indigo-300 transition-all flex justify-between items-center group">
-                      <div><h3 className="font-extrabold text-slate-900">{t.subject}</h3><p className="text-sm font-bold text-indigo-600 mt-1.5">{t.club}</p></div>
+                      <div>
+                        <h3 className="font-extrabold text-slate-900">{t.subject}</h3>
+                        <p className="text-sm font-bold text-indigo-600 mt-1.5 mb-1">{t.club}</p>
+                        {/* DISPLAY SENDER IN THREAD LIST */}
+                        <p className="text-[10px] font-extrabold text-slate-500 uppercase">👤 Par: {t.profiles?.full_name || 'Utilisateur'}</p>
+                      </div>
                       <div className="h-10 w-10 rounded-full bg-indigo-50 flex items-center justify-center group-hover:bg-indigo-100 border border-indigo-100"><span className="text-indigo-600 font-extrabold group-hover:translate-x-0.5 transition-transform">→</span></div>
                     </button>
                   ))}
@@ -219,12 +239,23 @@ export default function InboxPage() {
               <>
                 <div className="bg-gradient-to-r from-indigo-600 to-blue-600 px-5 py-4 shrink-0 flex items-center gap-4 shadow-sm">
                   <button onClick={() => {setActiveThread(null); setReplyText('');}} className="text-white hover:bg-white/20 p-2.5 rounded-xl font-bold text-sm backdrop-blur-sm">←</button>
-                  <div className="overflow-hidden"><h2 className="text-base font-extrabold text-white truncate">{activeThread.subject}</h2><p className="text-xs font-bold text-indigo-100 mt-0.5">{activeThread.club}</p></div>
+                  <div className="overflow-hidden">
+                    <h2 className="text-base font-extrabold text-white truncate">{activeThread.subject}</h2>
+                    <p className="text-xs font-bold text-indigo-100 mt-0.5">{activeThread.club}</p>
+                  </div>
                 </div>
                 <div className="flex-1 p-5 overflow-y-auto space-y-4 bg-slate-50/30">
                   {messages.map((msg, idx) => (
                     <div key={idx} className={`flex ${msg.is_mission_reply ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[85%] p-4 rounded-2xl shadow-sm ${msg.is_mission_reply ? 'bg-indigo-600 text-white rounded-tr-sm' : 'bg-white/90 backdrop-blur-md border border-slate-200/50 text-slate-800 rounded-tl-sm'}`}>
+                        
+                        {/* DISPLAY SENDER IN CHAT BUBBLE */}
+                        {!msg.is_mission_reply && (
+                          <p className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 opacity-80">
+                            {msg.profiles?.full_name || 'Membre du club'}
+                          </p>
+                        )}
+                        
                         <p className="text-sm font-medium leading-relaxed">{msg.message}</p>
                         <div className={`flex items-center justify-end gap-1.5 mt-2 text-[10px] font-extrabold ${msg.is_mission_reply ? 'text-indigo-200' : 'text-slate-400'}`}>
                           <span>{new Date(msg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
