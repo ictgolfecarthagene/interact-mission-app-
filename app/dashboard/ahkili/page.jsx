@@ -115,9 +115,10 @@ export default function AhkiliThreadsPage() {
   };
 
   const handleKeyDown = (e) => {
+    // If Enter is pressed without Shift, send the message (Mobile & PC)
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage();
+      if (newMessage.trim()) handleSendMessage();
     }
   };
 
@@ -177,7 +178,7 @@ export default function AhkiliThreadsPage() {
                   <h2 className="text-lg font-bold text-white tracking-wide">{activeThread.subject}</h2>
                 </div>
               </div>
-              <div className="flex-1 p-6 overflow-y-auto space-y-4 bg-slate-50/30 flex flex-col">
+              <div className="flex-1 p-6 overflow-y-auto space-y-4 bg-white/20 flex flex-col">
                 {messages.map((msg, idx) => {
                   const isMyMessage = !msg.is_mission_reply; 
                   
@@ -212,6 +213,7 @@ export default function AhkiliThreadsPage() {
                   value={newMessage} 
                   onChange={(e) => setNewMessage(e.target.value)} 
                   onKeyDown={handleKeyDown}
+                  enterKeyHint="send" 
                   placeholder="Écrivez une réponse..." 
                   className="flex-1 p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 resize-none font-medium transition-all shadow-inner" 
                   rows="2" 

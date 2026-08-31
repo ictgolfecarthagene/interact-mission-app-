@@ -19,6 +19,9 @@ export default function InboxPage() {
   const [remarqueInputs, setRemarqueInputs] = useState({});
   const router = useRouter();
 
+  // Custom UI Dialog for errors (replaces browser alert)
+  const [dialog, setDialog] = useState({ isOpen: false, message: '' });
+
   useEffect(() => {
     async function loadData() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -53,26 +56,33 @@ export default function InboxPage() {
   const handleArchive = async (actionId) => {
     setActions(actions.map(a => a.id === actionId ? { ...a, archived: true } : a)); 
     const result = await toggleArchiveAction(actionId, true);
-    if (!result.success) alert(`Erreur: ${result.error}`);
+    if (!result.success) setDialog({ isOpen: true, message: `Erreur: ${result.error}` });
     router.refresh();
   };
 
   const handleUnarchive = async (actionId) => {
     setActions(actions.map(a => a.id === actionId ? { ...a, archived: false } : a)); 
     const result = await toggleArchiveAction(actionId, false);
-    if (!result.success) alert(`Erreur: ${result.error}`);
+    if (!result.success) setDialog({ isOpen: true, message: `Erreur: ${result.error}` });
     router.refresh();
   };
 
+  // AUTO-ARCHIVE APPLIED HERE
   const handleSaveRemarque = async (actionId) => {
     const text = remarqueInputs[actionId];
     if (!text) return;
     
-    setActions(actions.map(a => a.id === actionId ? { ...a, remarque: text } : a)); 
+    // Optimistic UI: Apply remarque AND archive immediately
+    setActions(actions.map(a => a.id === actionId ? { ...a, remarque: text, archived: true } : a)); 
     setRemarqueInputs({...remarqueInputs, [actionId]: ''});
     
     const result = await saveActionFeedback(actionId, text);
-    if (!result.success) alert(`Erreur: ${result.error}`);
+    if (!result.success) {
+      setDialog({ isOpen: true, message: `Erreur: ${result.error}` });
+    } else {
+      // Toggle archive in DB as well
+      await toggleArchiveAction(actionId, true);
+    }
     router.refresh();
   };
 
@@ -100,9 +110,10 @@ export default function InboxPage() {
   };
 
   const handleKeyDown = (e) => {
+    // If Enter is pressed without Shift, send the message (Mobile & PC)
     if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleReply();
+      e.preventDefault(); // Prevents a new line from being drawn
+      if (replyText.trim()) handleReply();
     }
   };
 
@@ -171,6 +182,18 @@ export default function InboxPage() {
             </div>
           </div>
         </div>
+
+        {/* CUSTOM UI POPUP MODAL (ERRORS) */}
+        {dialog.isOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
+            <div className="bg-white rounded-[2rem] p-8 max-w-sm w-full shadow-2xl border border-white/50 text-center">
+              <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 bg-red-100 text-red-600">✕</div>
+              <h3 className="text-xl font-extrabold text-slate-900 mb-2">Attention</h3>
+              <p className="text-slate-500 font-medium mb-8 leading-relaxed">{dialog.message}</p>
+              <button onClick={() => setDialog({ isOpen: false, message: '' })} className="w-full py-3.5 bg-slate-900 text-white font-extrabold rounded-xl hover:bg-slate-800 transition-all shadow-md">Fermer</button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -283,6 +306,7 @@ export default function InboxPage() {
                     value={replyText} 
                     onChange={(e) => setReplyText(e.target.value)} 
                     onKeyDown={handleKeyDown}
+                    enterKeyHint="send" 
                     placeholder="Écrire une réponse..." 
                     className="flex-1 p-3.5 bg-slate-50 border border-slate-200 rounded-xl resize-none outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white font-medium shadow-inner" 
                     rows="2" 
@@ -294,6 +318,18 @@ export default function InboxPage() {
           </div>
         </div>
       </div>
+      
+      {/* CUSTOM UI POPUP MODAL (ERRORS) */}
+      {dialog.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-[2rem] p-8 max-w-sm w-full shadow-2xl border border-white/50 text-center">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 bg-red-100 text-red-600">✕</div>
+            <h3 className="text-xl font-extrabold text-slate-900 mb-2">Attention</h3>
+            <p className="text-slate-500 font-medium mb-8 leading-relaxed">{dialog.message}</p>
+            <button onClick={() => setDialog({ isOpen: false, message: '' })} className="w-full py-3.5 bg-slate-900 text-white font-extrabold rounded-xl hover:bg-slate-800 transition-all shadow-md">Fermer</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
