@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link'; 
 import { supabase } from '@/lib/supabase';
@@ -11,10 +11,23 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
   const router = useRouter();
 
-  // NEW: Custom popup dialog state
   const [dialog, setDialog] = useState({ isOpen: false, message: '' });
+
+  // NEW: Session Cache Check
+  useEffect(() => {
+    async function checkActiveSession() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        router.push('/dashboard');
+      } else {
+        setCheckingSession(false);
+      }
+    }
+    checkActiveSession();
+  }, [router]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -26,13 +39,24 @@ export default function LoginPage() {
     });
 
     if (error) {
-      // REPLACED default alert() with custom popup
       setDialog({ isOpen: true, message: error.message });
       setLoading(false);
     } else {
       router.push('/dashboard');
     }
   };
+
+  // Prevent flash of login form while checking cache
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-pulse flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-full border-4 border-blue-600 border-t-transparent animate-spin"></div>
+          <p className="font-bold text-gray-500">Ouverture de session...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
