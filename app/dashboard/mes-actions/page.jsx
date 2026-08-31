@@ -10,7 +10,6 @@ export default function MesActionsPage() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  // Replace the loadData useEffect with this:
   useEffect(() => {
     async function loadData() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -18,16 +17,21 @@ export default function MesActionsPage() {
 
       const { data: userProfile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
       
-      // God mode check bypass
-      if (user.email !== 'yessinebenfrj106@gmail.com' && userProfile?.role !== 'chef_club') {
+      if (user.email !== 'yessinebenfraj106@gmail.com' && userProfile?.role !== 'chef_club') {
         return router.push('/dashboard');
       }
       setProfile(userProfile);
 
-      // If God Mode, fetch ALL actions. Otherwise, fetch just the club's actions.
-      let query = supabase.from('submitted_actions').select('*').order('created_at', { ascending: false });
-      if (user.email !== 'yessinebenfrj106@gmail.com') {
-        query = query.eq('club', userProfile.club);
+      // Evaluate simulated club vs real club
+      let targetClub = userProfile.club;
+      if (user.email === 'yessinebenfraj106@gmail.com') {
+        targetClub = localStorage.getItem('god_mode_club') || 'IC Tunis Golfe Carthagène';
+      }
+
+      // Query submitted_actions by club, and pull the submitter's full name!
+      let query = supabase.from('submitted_actions').select('*, profiles(full_name)').order('created_at', { ascending: false });
+      if (targetClub) {
+        query = query.eq('club', targetClub);
       }
       const { data: actionsData } = await query;
         
@@ -49,7 +53,7 @@ export default function MesActionsPage() {
           <div>
             <Link href="/dashboard" className="text-sm font-bold text-emerald-600 hover:text-emerald-800 transition mb-1 inline-block">← Retour au hub</Link>
             <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Historique de mes Actions</h1>
-            <p className="text-sm text-slate-500 font-medium mt-1">Gérez vos soumissions et consultez les retours de la mission pour le {profile?.club}.</p>
+            <p className="text-sm text-slate-500 font-medium mt-1">Gérez vos soumissions et consultez les retours de la mission.</p>
           </div>
         </div>
 
@@ -65,9 +69,14 @@ export default function MesActionsPage() {
                   <span className="text-[10px] font-extrabold px-3 py-1.5 rounded-lg uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-100 shadow-sm">
                     {action.journee_name}
                   </span>
-                  <span className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1.5 rounded-lg">
-                    {new Date(action.created_at).toLocaleDateString('fr-FR')}
-                  </span>
+                  <div className="text-right">
+                    <span className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1.5 rounded-lg block mb-1">
+                      {new Date(action.created_at).toLocaleDateString('fr-FR')} - {action.club}
+                    </span>
+                    <span className="text-[10px] font-extrabold text-emerald-600 uppercase tracking-widest block">
+                      Soumis par: {action.profiles?.full_name || 'Utilisateur'}
+                    </span>
+                  </div>
                 </div>
                 
                 <h3 className="text-xl font-extrabold text-slate-900 mb-3">{action.nom_action}</h3>
@@ -77,7 +86,6 @@ export default function MesActionsPage() {
                   <a href={action.social_link} target="_blank" rel="noreferrer" className="text-xs bg-slate-900 text-white px-4 py-2 rounded-xl font-bold hover:bg-slate-800 shadow-sm transition-colors">Voir la publication ↗</a>
                 </div>
 
-                {/* THE HIGHLIGHTED FEEDBACK SECTION */}
                 {action.remarque && (
                   <div className="mt-4 bg-gradient-to-r from-emerald-50 to-teal-50 border-l-4 border-emerald-500 p-4 rounded-r-xl shadow-sm">
                     <p className="text-[10px] font-extrabold text-emerald-700 uppercase tracking-widest mb-1">Mot de la Coordination</p>

@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simple-maps";
 
-// URL pour dessiner la carte du monde
-const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
+// Updated to a much more stable CDN to fix the blank map issue
+const geoUrl = "https://unpkg.com/world-atlas@2.0.2/countries-110m.json";
 
 export default function ForeignClubsMap() {
   const router = useRouter();
@@ -61,13 +61,12 @@ export default function ForeignClubsMap() {
           </Link>
         </div>
 
-        <div className="flex-1 bg-sky-50/50 border border-sky-100 rounded-[2.5rem] shadow-inner overflow-hidden relative">
-          <ComposableMap projection="geoMercator" projectionConfig={{ scale: 140 }}>
+        <div className="flex-1 bg-sky-50/50 border border-sky-100 rounded-[2.5rem] shadow-inner overflow-hidden relative min-h-[60vh]">
+          <ComposableMap projection="geoMercator" projectionConfig={{ scale: 130 }} style={{ width: "100%", height: "100%" }}>
             <ZoomableGroup>
               <Geographies geography={geoUrl}>
                 {({ geographies }) =>
                   geographies.map((geo) => {
-                    // Match français/anglais simplifié pour la demo
                     const isFilled = Object.keys(clubsByCountry).some(c => geo.properties.name.toLowerCase().includes(c.toLowerCase()) || c.toLowerCase().includes(geo.properties.name.toLowerCase()));
                     
                     return (
@@ -106,7 +105,7 @@ export default function ForeignClubsMap() {
                     {club.club_ig && <a href={club.club_ig} target="_blank" className="text-xs font-bold text-pink-600 hover:underline">Instagram du Club ↗</a>}
                     
                     {/* INFO SUBMITTER (VISIBLE SEULEMENT PAR LA MISSION/COMITE) */}
-                    {(profile?.role === 'chef_mission_inter' || profile?.role === 'comite_national') && (
+                    {(profile?.role === 'chef_mission_inter' || profile?.role === 'comite_national' || profile?.role === 'super_admin') && (
                       <div className="mt-3 text-[10px] uppercase tracking-widest font-extrabold text-indigo-500 bg-indigo-50 inline-block px-2 py-1 rounded">
                         Soumis par: {club.profiles?.full_name} ({club.profiles?.club})
                       </div>

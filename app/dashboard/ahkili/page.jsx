@@ -14,8 +14,15 @@ export default function AhkiliThreadsPage() {
   const [newMessage, setNewMessage] = useState('');
   const router = useRouter();
 
-  // NEW: Custom popup dialog state
   const [dialog, setDialog] = useState({ isOpen: false, message: '' });
+
+  // Evaluate the actual club or the God Mode simulated club
+  const getTargetClub = (user, userProfile) => {
+    if (user.email === 'yessinebenfraj106@gmail.com') {
+      return localStorage.getItem('god_mode_club') || 'IC Tunis Golfe Carthagène';
+    }
+    return userProfile?.club;
+  };
 
   useEffect(() => {
     async function loadProfileAndThreads() {
@@ -24,12 +31,17 @@ export default function AhkiliThreadsPage() {
       const { data: userProfile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
       setProfile(userProfile);
       
-      let query = supabase.from('ahkili_threads').select('*').order('created_at', { ascending: false });
-      if (user.email !== 'yessinebenfraj106@gmail.com' && userProfile?.club) {
-        query = query.eq('user_id', userProfile.id);
+      const targetClub = getTargetClub(user, userProfile);
+
+      if (targetClub) {
+        // Query by CLUB so all club members share the thread. Select profile info to display sender name!
+        const { data: myThreads } = await supabase
+          .from('ahkili_threads')
+          .select('*, profiles(full_name)')
+          .eq('club', targetClub)
+          .order('created_at', { ascending: false });
+        setThreads(myThreads || []);
       }
-      const { data: myThreads } = await query;
-      setThreads(myThreads || []);
     }
     loadProfileAndThreads();
   }, [router]);
@@ -42,9 +54,13 @@ export default function AhkiliThreadsPage() {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'ahkili_messages', filter: `thread_id=eq.${activeThread.id}` },
-        (payload) => {
+        async (payload) => {
           if (payload.new.sender_id !== profile.id) {
-            setMessages((currentMessages) => [...currentMessages, payload.new]);
+            // Fetch sender profile name for realtime popup
+            const { data: senderProfile } = await supabase.from('profiles').select('full_name').eq('id', payload.new.sender_id).single();
+            const liveMessage = { ...payload.new, profiles: { full_name: senderProfile?.full_name } };
+            
+            setMessages((currentMessages) => [...currentMessages, liveMessage]);
             supabase.from('ahkili_messages').update({ status: 'read' }).eq('id', payload.new.id).then();
           }
         }
@@ -56,7 +72,13 @@ export default function AhkiliThreadsPage() {
 
   const openThread = async (thread) => {
     setActiveThread(thread);
-    const { data: msgs } = await supabase.from('ahkili_messages').select('*').eq('thread_id', thread.id).order('created_at', { ascending: true });
+    // Fetch messages WITH sender full_name
+    const { data: msgs } = await supabase
+      .from('ahkili_messages')
+      .select('*, profiles(full_name)')
+      .eq('thread_id', thread.id)
+      .order('created_at', { ascending: true });
+    
     setMessages(msgs || []);
     await supabase.from('ahkili_messages').update({ status: 'read' }).eq('thread_id', thread.id).eq('is_mission_reply', true).eq('status', 'delivered');
   };
@@ -65,9 +87,11 @@ export default function AhkiliThreadsPage() {
     e.preventDefault();
     if (!newSubject.trim() || !newMessage.trim()) return;
     
-    const { data: threadData, error: threadError } = await supabase.from('ahkili_threads').insert([{ user_id: profile.id, club: profile.club, subject: newSubject }]).select().single();
+    const { data: { user } } = await supabase.auth.getUser();
+    const targetClub = getTargetClub(user, profile);
+
+    const { data: threadData, error: threadError } = await supabase.from('ahkili_threads').insert([{ user_id: profile.id, club: targetClub, subject: newSubject }]).select('*, profiles(full_name)').single();
     
-    // REPLACED default alert() with custom popup
     if (threadError) {
       return setDialog({ isOpen: true, message: `Impossible de créer la discussion: ${threadError.message}` });
     }
@@ -81,7 +105,9 @@ export default function AhkiliThreadsPage() {
     e.preventDefault();
     if (!newMessage.trim() || !activeThread) return;
     const msgData = { thread_id: activeThread.id, sender_id: profile.id, message: newMessage, is_mission_reply: false };
-    setMessages([...messages, { ...msgData, created_at: new Date().toISOString(), status: 'delivered' }]); 
+    
+    // Add optimistic message with your own name
+    setMessages([...messages, { ...msgData, profiles: { full_name: profile.full_name }, created_at: new Date().toISOString(), status: 'delivered' }]); 
     setNewMessage('');
     await supabase.from('ahkili_messages').insert([msgData]);
   };
@@ -109,7 +135,12 @@ export default function AhkiliThreadsPage() {
               <div className="p-6 space-y-4 flex-1 overflow-y-auto">
                 {threads.length === 0 ? <p className="text-center text-slate-400 mt-10 font-medium">Aucune discussion en cours.</p> : threads.map(t => (
                   <div key={t.id} onClick={() => openThread(t)} className="p-5 border border-slate-200 bg-white/50 rounded-2xl hover:bg-white hover:shadow-md cursor-pointer flex justify-between items-center transition-all group">
-                    <div><h3 className="font-bold text-slate-900 text-lg">{t.subject}</h3><p className="text-xs font-bold text-slate-500 mt-1">{new Date(t.created_at).toLocaleDateString('fr-FR')} - {t.club}</p></div>
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-lg">{t.subject}</h3>
+                      <p className="text-xs font-bold text-slate-500 mt-1">
+                        Démarrée par <span className="text-indigo-600 font-extrabold">{t.profiles?.full_name || 'Un membre'}</span> • {new Date(t.created_at).toLocaleDateString('fr-FR')}
+                      </p>
+                    </div>
                     <span className="text-indigo-600 font-extrabold group-hover:translate-x-1 transition-transform">→</span>
                   </div>
                 ))}
@@ -141,6 +172,10 @@ export default function AhkiliThreadsPage() {
                 {messages.map((msg, idx) => (
                   <div key={idx} className={`flex ${msg.is_mission_reply ? 'justify-start' : 'justify-end'}`}>
                     <div className={`max-w-[75%] p-4 rounded-2xl shadow-sm ${msg.is_mission_reply ? 'bg-white border border-slate-200 text-slate-800 rounded-tl-sm' : 'bg-indigo-600 text-white rounded-tr-sm'}`}>
+                      {/* DISPLAY SENDER NAME ON MESSAGE */}
+                      <p className={`text-[10px] font-extrabold uppercase mb-1 ${msg.is_mission_reply ? 'text-slate-400' : 'text-indigo-200'}`}>
+                        {msg.is_mission_reply ? 'Mission des actions' : (msg.profiles?.full_name || 'Utilisateur')}
+                      </p>
                       <p className="text-sm font-medium leading-relaxed">{msg.message}</p>
                       <div className={`flex items-center justify-end gap-1.5 mt-2 text-[10px] font-extrabold ${msg.is_mission_reply ? 'text-slate-400' : 'text-indigo-200'}`}>
                         <span>{new Date(msg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
@@ -159,18 +194,13 @@ export default function AhkiliThreadsPage() {
         </div>
       </div>
 
-      {/* CUSTOM UI POPUP MODAL (ERRORS) */}
       {dialog.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
           <div className="bg-white rounded-[2rem] p-8 max-w-sm w-full shadow-2xl border border-white/50 text-center">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 bg-red-100 text-red-600">
-              ✕
-            </div>
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 bg-red-100 text-red-600">✕</div>
             <h3 className="text-xl font-extrabold text-slate-900 mb-2">Attention</h3>
             <p className="text-slate-500 font-medium mb-8 leading-relaxed">{dialog.message}</p>
-            <button onClick={() => setDialog({ isOpen: false, message: '' })} className="w-full py-3.5 bg-slate-900 text-white font-extrabold rounded-xl hover:bg-slate-800 transition-all shadow-md">
-              Fermer
-            </button>
+            <button onClick={() => setDialog({ isOpen: false, message: '' })} className="w-full py-3.5 bg-slate-900 text-white font-extrabold rounded-xl hover:bg-slate-800 transition-all shadow-md">Fermer</button>
           </div>
         </div>
       )}

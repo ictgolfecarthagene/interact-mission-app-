@@ -4,10 +4,13 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
+const CLUBS = ["IC Tunis Medina", "IC Mirabel Tunis", "IC North Africa", "IC Pilote Ariana", "IC Bloom City", "IC Big South Tunis", "IC Tunis Cosmopolitan", "IC Tunis Doyen", "IC Tunis Inner City", "IC Tunis El Bey", "IC Anastasia", "IC Ennaser", "IC Tunis Golden Eagles", "IC Rey De Carthago", "IC Tinast Glory", "IC Didon Amilcar", "IC Tunis Golfe", "IC Opportunity", "IC Aquatic North", "IC Tunis Moon City", "IC Tunis Les Berges Du Lac", "IC Tunis Hannibal", "IC Amilcar Sidibousaid", "IC Sidibousaid", "IC Tunis César", "IC Carthage La Renaissance", "IC Tunis Belvédère", "IC Ariana Tines", "IC Ariana La Rose", "IC Saint Germain", "IC Maxula Prates", "IC Tunis Golfe Carthagène", "IC Megrine", "IC Tunis Amilcar", "IC Hammam Lif", "IC Boumhel El Bassatine", "IC Hammamet", "IC Nabeul Neapolis", "IC Graces El Mourouj", "IC Pragma Sousse", "IC Sousse", "IC Kairouan", "IC Ruspina Monastir", "IC Monastir Zone Sud", "IC Sfax Doyen", "IC Sfax Métropole", "IC Sfax Flambeau", "IC Sfax Sindbad", "IC Sfax Tamaris", "IC Gabes Oasis", "IC Djerba Flamingo"];
+
 export default function DashboardHome() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('chef_club');
+  const [simulatedClub, setSimulatedClub] = useState('');
   const router = useRouter();
 
   useEffect(() => {
@@ -19,6 +22,14 @@ export default function DashboardHome() {
       setProfile(data);
       if (user.email !== 'yessinebenfraj106@gmail.com') {
         setViewMode(data.role); 
+      } else {
+        // God Mode: Load simulated club
+        const savedClub = localStorage.getItem('god_mode_club');
+        if (savedClub) setSimulatedClub(savedClub);
+        else {
+          setSimulatedClub(CLUBS[0]);
+          localStorage.setItem('god_mode_club', CLUBS[0]);
+        }
       }
       setLoading(false);
     }
@@ -46,10 +57,10 @@ export default function DashboardHome() {
         
         {/* VIEW MODE SWITCHER (ONLY FOR YOU) */}
         {isGodMode && (
-          <div className="bg-red-50 border border-red-200 p-4 rounded-2xl flex justify-between items-center shadow-sm">
+          <div className="bg-red-50 border border-red-200 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-center shadow-sm gap-4">
             <span className="text-red-800 font-extrabold text-sm flex items-center gap-2">👑 GOD MODE ACTIF</span>
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-bold text-red-600 uppercase tracking-widest">Vue Actuelle:</span>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <span className="text-xs font-bold text-red-600 uppercase tracking-widest hidden md:inline">Vue:</span>
               <select 
                 value={viewMode} 
                 onChange={(e) => setViewMode(e.target.value)} 
@@ -60,6 +71,20 @@ export default function DashboardHome() {
                 <option value="chef_mission_inter">Mission Inter</option>
                 <option value="super_admin">TOUT VOIR</option>
               </select>
+              
+              {/* TARGET CLUB SELECTOR */}
+              {viewMode === 'chef_club' && (
+                <select 
+                  value={simulatedClub} 
+                  onChange={(e) => {
+                    setSimulatedClub(e.target.value);
+                    localStorage.setItem('god_mode_club', e.target.value);
+                  }} 
+                  className="p-2 bg-white border border-indigo-200 rounded-lg text-sm font-bold text-indigo-900 shadow-sm outline-none cursor-pointer"
+                >
+                  {CLUBS.map(c => <option key={c} value={c}>Cible: {c}</option>)}
+                </select>
+              )}
             </div>
           </div>
         )}
