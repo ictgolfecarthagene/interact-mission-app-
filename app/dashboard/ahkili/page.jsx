@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -13,10 +13,10 @@ export default function AhkiliThreadsPage() {
   const [newSubject, setNewSubject] = useState('');
   const [newMessage, setNewMessage] = useState('');
   const router = useRouter();
-
+  
+  const messagesEndRef = useRef(null);
   const [dialog, setDialog] = useState({ isOpen: false, message: '' });
 
-  // Evaluate the actual club or the God Mode simulated club
   const getTargetClub = (user, userProfile) => {
     if (user.email === 'yessinebenfraj106@gmail.com') {
       return localStorage.getItem('god_mode_club') || 'IC Tunis Golfe Carthagène';
@@ -34,7 +34,6 @@ export default function AhkiliThreadsPage() {
       const targetClub = getTargetClub(user, userProfile);
 
       if (targetClub) {
-        // Query by CLUB so all club members share the thread. Select profile info to display sender name!
         const { data: myThreads } = await supabase
           .from('ahkili_threads')
           .select('*, profiles(full_name)')
@@ -56,7 +55,6 @@ export default function AhkiliThreadsPage() {
         { event: 'INSERT', schema: 'public', table: 'ahkili_messages', filter: `thread_id=eq.${activeThread.id}` },
         async (payload) => {
           if (payload.new.sender_id !== profile.id) {
-            // Fetch sender profile name for realtime popup
             const { data: senderProfile } = await supabase.from('profiles').select('full_name').eq('id', payload.new.sender_id).single();
             const liveMessage = { ...payload.new, profiles: { full_name: senderProfile?.full_name } };
             
@@ -70,9 +68,13 @@ export default function AhkiliThreadsPage() {
     return () => { supabase.removeChannel(channel); };
   }, [activeThread, profile]);
 
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
   const openThread = async (thread) => {
     setActiveThread(thread);
-    // Fetch messages WITH sender full_name
     const { data: msgs } = await supabase
       .from('ahkili_messages')
       .select('*, profiles(full_name)')
@@ -102,14 +104,21 @@ export default function AhkiliThreadsPage() {
   };
 
   const handleSendMessage = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!newMessage.trim() || !activeThread) return;
-    const msgData = { thread_id: activeThread.id, sender_id: profile.id, message: newMessage, is_mission_reply: false };
     
-    // Add optimistic message with your own name
+    const msgData = { thread_id: activeThread.id, sender_id: profile.id, message: newMessage.trim(), is_mission_reply: false };
+    
     setMessages([...messages, { ...msgData, profiles: { full_name: profile.full_name }, created_at: new Date().toISOString(), status: 'delivered' }]); 
     setNewMessage('');
     await supabase.from('ahkili_messages').insert([msgData]);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
   };
 
   if (!profile) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-pulse text-xl font-bold text-indigo-400">Chargement...</div></div>;
@@ -168,26 +177,46 @@ export default function AhkiliThreadsPage() {
                   <h2 className="text-lg font-bold text-white tracking-wide">{activeThread.subject}</h2>
                 </div>
               </div>
-              <div className="flex-1 p-6 overflow-y-auto space-y-4 bg-white/20 flex flex-col">
-                {messages.map((msg, idx) => (
-                  <div key={idx} className={`flex ${msg.is_mission_reply ? 'justify-start' : 'justify-end'}`}>
-                    <div className={`max-w-[75%] p-4 rounded-2xl shadow-sm ${msg.is_mission_reply ? 'bg-white border border-slate-200 text-slate-800 rounded-tl-sm' : 'bg-indigo-600 text-white rounded-tr-sm'}`}>
-                      {/* DISPLAY SENDER NAME ON MESSAGE */}
-                      <p className={`text-[10px] font-extrabold uppercase mb-1 ${msg.is_mission_reply ? 'text-slate-400' : 'text-indigo-200'}`}>
-                        {msg.is_mission_reply ? 'Mission des actions' : (msg.profiles?.full_name || 'Utilisateur')}
-                      </p>
-                      <p className="text-sm font-medium leading-relaxed">{msg.message}</p>
-                      <div className={`flex items-center justify-end gap-1.5 mt-2 text-[10px] font-extrabold ${msg.is_mission_reply ? 'text-slate-400' : 'text-indigo-200'}`}>
-                        <span>{new Date(msg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
-                        {!msg.is_mission_reply && <span className={msg.status === 'read' ? 'text-emerald-300' : ''}>{msg.status === 'read' ? '✓✓' : '✓'}</span>}
+              <div className="flex-1 p-6 overflow-y-auto space-y-4 bg-slate-50/30 flex flex-col">
+                {messages.map((msg, idx) => {
+                  const isMyMessage = !msg.is_mission_reply; 
+                  
+                  return (
+                    <div key={idx} className={`flex ${isMyMessage ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[75%] p-4 rounded-2xl shadow-sm ${isMyMessage ? 'bg-indigo-600 text-white rounded-tr-sm' : 'bg-white border border-slate-200 text-slate-800 rounded-tl-sm'}`}>
+                        
+                        {!isMyMessage && (
+                          <p className="text-[10px] font-extrabold uppercase mb-1 opacity-70 text-slate-500">
+                            Mission des actions
+                          </p>
+                        )}
+                        {isMyMessage && msg.profiles?.full_name !== profile.full_name && (
+                           <p className="text-[10px] font-extrabold uppercase mb-1 opacity-80 text-indigo-200">
+                             {msg.profiles?.full_name}
+                           </p>
+                        )}
+                        
+                        <p className="text-sm font-medium leading-relaxed whitespace-pre-wrap">{msg.message}</p>
+                        <div className={`flex items-center justify-end gap-1.5 mt-2 text-[10px] font-extrabold ${isMyMessage ? 'text-indigo-200' : 'text-slate-400'}`}>
+                          <span>{new Date(msg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+                          {isMyMessage && <span className={msg.status === 'read' ? 'text-emerald-300' : ''}>{msg.status === 'read' ? '✓✓' : '✓'}</span>}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
+                <div ref={messagesEndRef} />
               </div>
               <form onSubmit={handleSendMessage} className="p-4 bg-white/80 backdrop-blur-md border-t border-slate-200/50 flex gap-3 items-end">
-                <textarea value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Écrivez une réponse..." className="flex-1 p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 resize-none font-medium transition-all shadow-inner" rows="2" />
-                <button type="submit" className="px-6 py-3.5 bg-indigo-600 text-white font-extrabold rounded-xl shadow-md hover:bg-indigo-700 hover:-translate-y-0.5 transition-all">Envoyer</button>
+                <textarea 
+                  value={newMessage} 
+                  onChange={(e) => setNewMessage(e.target.value)} 
+                  onKeyDown={handleKeyDown}
+                  placeholder="Écrivez une réponse..." 
+                  className="flex-1 p-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 resize-none font-medium transition-all shadow-inner" 
+                  rows="2" 
+                />
+                <button type="submit" disabled={!newMessage.trim()} className="px-6 py-3.5 bg-indigo-600 text-white font-extrabold rounded-xl shadow-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5 transition-all">Envoyer</button>
               </form>
             </>
           )}
@@ -197,10 +226,14 @@ export default function AhkiliThreadsPage() {
       {dialog.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
           <div className="bg-white rounded-[2rem] p-8 max-w-sm w-full shadow-2xl border border-white/50 text-center">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 bg-red-100 text-red-600">✕</div>
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 bg-red-100 text-red-600">
+              ✕
+            </div>
             <h3 className="text-xl font-extrabold text-slate-900 mb-2">Attention</h3>
             <p className="text-slate-500 font-medium mb-8 leading-relaxed">{dialog.message}</p>
-            <button onClick={() => setDialog({ isOpen: false, message: '' })} className="w-full py-3.5 bg-slate-900 text-white font-extrabold rounded-xl hover:bg-slate-800 transition-all shadow-md">Fermer</button>
+            <button onClick={() => setDialog({ isOpen: false, message: '' })} className="w-full py-3.5 bg-slate-900 text-white font-extrabold rounded-xl hover:bg-slate-800 transition-all shadow-md">
+              Fermer
+            </button>
           </div>
         </div>
       )}

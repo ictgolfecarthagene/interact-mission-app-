@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -15,6 +15,7 @@ export default function InboxPage() {
   const [messages, setMessages] = useState([]);
   const [replyText, setReplyText] = useState('');
   
+  const messagesEndRef = useRef(null);
   const [remarqueInputs, setRemarqueInputs] = useState({});
   const router = useRouter();
 
@@ -25,7 +26,6 @@ export default function InboxPage() {
 
       const { data: userProfile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
       
-      // Allow God Mode
       if (user.email !== 'yessinebenfraj106@gmail.com' && userProfile?.role === 'chef_club') {
         return router.push('/dashboard');
       }
@@ -35,7 +35,6 @@ export default function InboxPage() {
       setActions(actionsData || []);
 
       if (userProfile?.role === 'chef_mission_inter' || user.email === 'yessinebenfraj106@gmail.com') {
-        // FETCH THREADS WITH CREATOR'S NAME
         const { data: threadData } = await supabase
           .from('ahkili_threads')
           .select('*, profiles(full_name)')
@@ -45,6 +44,11 @@ export default function InboxPage() {
     }
     loadData();
   }, [router]);
+
+  // Auto-scroll chat
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const handleArchive = async (actionId) => {
     setActions(actions.map(a => a.id === actionId ? { ...a, archived: true } : a)); 
@@ -74,7 +78,6 @@ export default function InboxPage() {
 
   const openThread = async (thread) => {
     setActiveThread(thread);
-    // FETCH MESSAGES WITH SENDER'S FULL NAME
     const { data: msgs } = await supabase
       .from('ahkili_messages')
       .select('*, profiles(full_name)')
@@ -86,13 +89,20 @@ export default function InboxPage() {
   };
 
   const handleReply = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!replyText.trim() || !activeThread) return;
-    const msgData = { thread_id: activeThread.id, sender_id: profile.id, message: replyText, is_mission_reply: true };
-    const { error } = await supabase.from('ahkili_messages').insert([msgData]);
-    if (!error) {
-      setMessages([...messages, { ...msgData, created_at: new Date().toISOString(), status: 'delivered' }]);
-      setReplyText('');
+    
+    const msgData = { thread_id: activeThread.id, sender_id: profile.id, message: replyText.trim(), is_mission_reply: true };
+    
+    setMessages([...messages, { ...msgData, created_at: new Date().toISOString(), status: 'delivered' }]);
+    setReplyText('');
+    await supabase.from('ahkili_messages').insert([msgData]);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleReply();
     }
   };
 
@@ -227,7 +237,6 @@ export default function InboxPage() {
                       <div>
                         <h3 className="font-extrabold text-slate-900">{t.subject}</h3>
                         <p className="text-sm font-bold text-indigo-600 mt-1.5 mb-1">{t.club}</p>
-                        {/* DISPLAY SENDER IN THREAD LIST */}
                         <p className="text-[10px] font-extrabold text-slate-500 uppercase">👤 Par: {t.profiles?.full_name || 'Utilisateur'}</p>
                       </div>
                       <div className="h-10 w-10 rounded-full bg-indigo-50 flex items-center justify-center group-hover:bg-indigo-100 border border-indigo-100"><span className="text-indigo-600 font-extrabold group-hover:translate-x-0.5 transition-transform">→</span></div>
@@ -245,29 +254,40 @@ export default function InboxPage() {
                   </div>
                 </div>
                 <div className="flex-1 p-5 overflow-y-auto space-y-4 bg-slate-50/30">
-                  {messages.map((msg, idx) => (
-                    <div key={idx} className={`flex ${msg.is_mission_reply ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[85%] p-4 rounded-2xl shadow-sm ${msg.is_mission_reply ? 'bg-indigo-600 text-white rounded-tr-sm' : 'bg-white/90 backdrop-blur-md border border-slate-200/50 text-slate-800 rounded-tl-sm'}`}>
-                        
-                        {/* DISPLAY SENDER IN CHAT BUBBLE */}
-                        {!msg.is_mission_reply && (
-                          <p className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 opacity-80">
-                            {msg.profiles?.full_name || 'Membre du club'}
-                          </p>
-                        )}
-                        
-                        <p className="text-sm font-medium leading-relaxed">{msg.message}</p>
-                        <div className={`flex items-center justify-end gap-1.5 mt-2 text-[10px] font-extrabold ${msg.is_mission_reply ? 'text-indigo-200' : 'text-slate-400'}`}>
-                          <span>{new Date(msg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
-                          {msg.is_mission_reply && <span className={msg.status === 'read' ? 'text-emerald-300' : ''}>{msg.status === 'read' ? '✓✓' : '✓'}</span>}
+                  {messages.map((msg, idx) => {
+                    const isMyMessage = msg.is_mission_reply; 
+
+                    return (
+                      <div key={idx} className={`flex ${isMyMessage ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-[85%] p-4 rounded-2xl shadow-sm ${isMyMessage ? 'bg-indigo-600 text-white rounded-tr-sm' : 'bg-white/90 backdrop-blur-md border border-slate-200/50 text-slate-800 rounded-tl-sm'}`}>
+                          
+                          {!isMyMessage && (
+                            <p className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 opacity-80">
+                              {msg.profiles?.full_name || 'Membre du club'}
+                            </p>
+                          )}
+                          
+                          <p className="text-sm font-medium leading-relaxed whitespace-pre-wrap">{msg.message}</p>
+                          <div className={`flex items-center justify-end gap-1.5 mt-2 text-[10px] font-extrabold ${isMyMessage ? 'text-indigo-200' : 'text-slate-400'}`}>
+                            <span>{new Date(msg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+                            {isMyMessage && <span className={msg.status === 'read' ? 'text-emerald-300' : ''}>{msg.status === 'read' ? '✓✓' : '✓'}</span>}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
+                  <div ref={messagesEndRef} />
                 </div>
                 <form onSubmit={handleReply} className="p-4 bg-white/80 backdrop-blur-md border-t border-slate-200/50 flex gap-3 items-end">
-                  <textarea value={replyText} onChange={(e) => setReplyText(e.target.value)} placeholder="Écrire une réponse..." className="flex-1 p-3.5 bg-slate-50 border border-slate-200 rounded-xl resize-none outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white font-medium shadow-inner" rows="2" />
-                  <button type="submit" className="px-6 py-4 bg-indigo-600 text-white font-extrabold text-sm rounded-xl hover:bg-indigo-700 shadow-md">Envoyer</button>
+                  <textarea 
+                    value={replyText} 
+                    onChange={(e) => setReplyText(e.target.value)} 
+                    onKeyDown={handleKeyDown}
+                    placeholder="Écrire une réponse..." 
+                    className="flex-1 p-3.5 bg-slate-50 border border-slate-200 rounded-xl resize-none outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white font-medium shadow-inner" 
+                    rows="2" 
+                  />
+                  <button type="submit" disabled={!replyText.trim()} className="px-6 py-4 bg-indigo-600 text-white font-extrabold text-sm rounded-xl hover:bg-indigo-700 shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all">Envoyer</button>
                 </form>
               </>
             )}
