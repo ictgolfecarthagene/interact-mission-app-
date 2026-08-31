@@ -19,7 +19,7 @@ export default function DashboardLayout({ children }) {
       }
 
       // God Mode check
-      if (user.email === 'yessinebenfrj106@gmail.com') {
+      if (user.email === 'yessinebenfraj106@gmail.com') {
         setIsGodMode(true);
         setIsVerified(true);
         setLoading(false);
@@ -55,7 +55,7 @@ export default function DashboardLayout({ children }) {
           </div>
           <h1 className="text-2xl font-extrabold text-slate-900 mb-4 tracking-tight">Compte en attente</h1>
           <p className="text-slate-500 font-medium leading-relaxed mb-8">
-            Votre compte a été créé avec succès. Cependant, pour des raisons de sécurité, il doit d'abord être vérifié et approuvé par la Coordination Nationale avant de pouvoir accéder au portail.
+            Votre compte a été créé avec succès. Cependant, pour des raisons de sécurité, il doit d'abord être vérifié et approuvé par un Admin avant de pouvoir accéder au portail.
           </p>
           <button onClick={async () => { await supabase.auth.signOut(); router.push('/'); }} className="w-full py-4 bg-slate-900 text-white font-extrabold rounded-2xl hover:bg-slate-800 transition-all shadow-md hover:-translate-y-0.5">
             Se déconnecter
