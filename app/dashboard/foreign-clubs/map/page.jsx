@@ -5,8 +5,28 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simple-maps";
 
-// Updated to a much more stable CDN to fix the blank map issue
 const geoUrl = "https://unpkg.com/world-atlas@2.0.2/countries-110m.json";
+
+// DICTIONNAIRE: Traduit vos pays français en noms standards de la carte (Anglais)
+const FR_TO_EN_MAP = {
+  'Tunisie': 'Tunisia', 'Algérie': 'Algeria', 'Maroc': 'Morocco', 'Sénégal': 'Senegal',
+  'Côte d\'Ivoire': 'Côte d\'Ivoire', 'Égypte': 'Egypt', 'Afrique du Sud': 'South Africa',
+  'Cameroun': 'Cameroon', 'Libye': 'Libya', 'Mauritanie': 'Mauritania', 'Nigéria': 'Nigeria',
+  'Ouganda': 'Uganda', 'Tchad': 'Chad', 'Italie': 'Italy', 'Espagne': 'Spain',
+  'Allemagne': 'Germany', 'Belgique': 'Belgium', 'Suisse': 'Switzerland',
+  'Royaume-Uni': 'United Kingdom', 'Autriche': 'Austria', 'Bulgarie': 'Bulgaria',
+  'Croatie': 'Croatia', 'Danemark': 'Denmark', 'Finlande': 'Finland', 'Grèce': 'Greece',
+  'Hongrie': 'Hungary', 'Irlande': 'Ireland', 'Norvège': 'Norway', 'Pays-Bas': 'Netherlands',
+  'Pologne': 'Poland', 'République Tchèque': 'Czechia', 'Roumanie': 'Romania',
+  'Serbie': 'Serbia', 'Suède': 'Sweden', 'Turquie': 'Turkey', 'Palestine': 'Palestine',
+  'Liban': 'Lebanon', 'Arabie Saoudite': 'Saudi Arabia', 'Émirats Arabes Unis': 'United Arab Emirates',
+  'Jordanie': 'Jordan', 'Japon': 'Japan', 'Chine': 'China', 'Corée du Sud': 'South Korea',
+  'Inde': 'India', 'Indonésie': 'Indonesia', 'Malaisie': 'Malaysia', 'Syrie': 'Syria',
+  'Thaïlande': 'Thailand', 'Yémen': 'Yemen', 'États-Unis': 'United States of America',
+  'Brésil': 'Brazil', 'Argentine': 'Argentina', 'Mexique': 'Mexico', 'Chili': 'Chile',
+  'Colombie': 'Colombia', 'Pérou': 'Peru', 'Bolivie': 'Bolivia', 'Équateur': 'Ecuador',
+  'Jamaïque': 'Jamaica', 'Haïti': 'Haiti', 'Irak': 'Iraq', 'Koweït': 'Kuwait', 'Russie': 'Russia'
+};
 
 export default function ForeignClubsMap() {
   const router = useRouter();
@@ -22,7 +42,6 @@ export default function ForeignClubsMap() {
       const { data: userProfile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
       setProfile(userProfile);
 
-      // Fetch clubs WITH submitter info
       const { data: clubsData } = await supabase.from('foreign_clubs').select('*, profiles(full_name, club)');
       setClubs(clubsData || []);
       setLoading(false);
@@ -30,11 +49,13 @@ export default function ForeignClubsMap() {
     loadData();
   }, [router]);
 
-  // Grouper les clubs par pays
+  // Grouper les clubs par pays EN ANGLAIS pour que la carte les reconnaisse
   const clubsByCountry = clubs.reduce((acc, club) => {
-    const countryName = club.country.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF] /g, ''); // Retire l'emoji pour le mapping
-    if (!acc[countryName]) acc[countryName] = [];
-    acc[countryName].push(club);
+    const frenchName = club.country.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF] /g, '').trim(); 
+    const englishName = FR_TO_EN_MAP[frenchName] || frenchName;
+    
+    if (!acc[englishName]) acc[englishName] = [];
+    acc[englishName].push({ ...club, displayCountry: frenchName });
     return acc;
   }, {});
 
@@ -67,15 +88,15 @@ export default function ForeignClubsMap() {
               <Geographies geography={geoUrl}>
                 {({ geographies }) =>
                   geographies.map((geo) => {
-                    const isFilled = Object.keys(clubsByCountry).some(c => geo.properties.name.toLowerCase().includes(c.toLowerCase()) || c.toLowerCase().includes(geo.properties.name.toLowerCase()));
+                    const countryName = geo.properties.name;
+                    const isFilled = !!clubsByCountry[countryName];
                     
                     return (
                       <Geography
                         key={geo.rsmKey}
                         geography={geo}
                         onClick={() => {
-                          const match = Object.keys(clubsByCountry).find(c => geo.properties.name.toLowerCase().includes(c.toLowerCase()) || c.toLowerCase().includes(geo.properties.name.toLowerCase()));
-                          if (match) setSelectedCountry({ name: match, clubs: clubsByCountry[match] });
+                          if (isFilled) setSelectedCountry({ name: clubsByCountry[countryName][0].displayCountry, clubs: clubsByCountry[countryName] });
                         }}
                         style={{
                           default: { fill: isFilled ? "#38bdf8" : "#e2e8f0", outline: "none", stroke: "#fff", strokeWidth: 0.5 },
@@ -90,7 +111,6 @@ export default function ForeignClubsMap() {
             </ZoomableGroup>
           </ComposableMap>
 
-          {/* MODAL POUR AFFICHER LES CLUBS DU PAYS */}
           {selectedCountry && (
             <div className="absolute top-0 right-0 w-full sm:w-96 h-full bg-white/95 backdrop-blur-xl border-l border-slate-200 shadow-2xl p-6 overflow-y-auto animate-fade-in z-50">
               <div className="flex justify-between items-center mb-6">
@@ -104,7 +124,6 @@ export default function ForeignClubsMap() {
                     <h3 className="font-extrabold text-lg text-slate-900">{club.club_name}</h3>
                     {club.club_ig && <a href={club.club_ig} target="_blank" className="text-xs font-bold text-pink-600 hover:underline">Instagram du Club ↗</a>}
                     
-                    {/* INFO SUBMITTER (VISIBLE SEULEMENT PAR LA MISSION/COMITE) */}
                     {(profile?.role === 'chef_mission_inter' || profile?.role === 'comite_national' || profile?.role === 'super_admin') && (
                       <div className="mt-3 text-[10px] uppercase tracking-widest font-extrabold text-indigo-500 bg-indigo-50 inline-block px-2 py-1 rounded">
                         Soumis par: {club.profiles?.full_name} ({club.profiles?.club})

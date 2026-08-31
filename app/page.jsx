@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Image from 'next/image';
-import Link from 'next/link'; // Imported the Link component
+import Link from 'next/link'; 
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
@@ -13,6 +13,9 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  // NEW: Custom popup dialog state
+  const [dialog, setDialog] = useState({ isOpen: false, message: '' });
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -23,7 +26,8 @@ export default function LoginPage() {
     });
 
     if (error) {
-      alert(error.message);
+      // REPLACED default alert() with custom popup
+      setDialog({ isOpen: true, message: error.message });
       setLoading(false);
     } else {
       router.push('/dashboard');
@@ -89,7 +93,6 @@ export default function LoginPage() {
             {loading ? 'Connexion en cours...' : 'Se connecter'}
           </button>
           
-          {/* New Signup Section */}
           <div className="mt-4 text-center">
             <p className="text-sm text-gray-600">
               Vous n'avez pas encore de compte ?{' '}
@@ -103,6 +106,22 @@ export default function LoginPage() {
           </div>
         </form>
       </div>
+
+      {/* CUSTOM UI POPUP MODAL */}
+      {dialog.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-[2rem] p-8 max-w-sm w-full shadow-2xl border border-white/50 text-center">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 bg-red-100 text-red-600">
+              ✕
+            </div>
+            <h3 className="text-xl font-extrabold text-slate-900 mb-2">Erreur de Connexion</h3>
+            <p className="text-slate-500 font-medium mb-8 leading-relaxed">{dialog.message}</p>
+            <button onClick={() => setDialog({ isOpen: false, message: '' })} className="w-full py-3.5 bg-slate-900 text-white font-extrabold rounded-xl hover:bg-slate-800 transition-all shadow-md">
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

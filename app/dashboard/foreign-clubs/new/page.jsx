@@ -4,32 +4,11 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-// COMPLETE WORLD DATABASE WITH SVG FLAG CODES (Israel strictly excluded)
 const WORLD_DATA = [
-  { 
-    continent: '🌍 Afrique', 
-    countries: [
-      { name: 'Tunisie', code: 'tn' }, { name: 'Algérie', code: 'dz' }, { name: 'Maroc', code: 'ma' }, { name: 'Sénégal', code: 'sn' }, { name: 'Côte d\'Ivoire', code: 'ci' }, { name: 'Égypte', code: 'eg' }, { name: 'Afrique du Sud', code: 'za' }, { name: 'Cameroun', code: 'cm' }, { name: 'Mali', code: 'ml' }, { name: 'Burkina Faso', code: 'ml' }, { name: 'Congo', code: 'cg' }, { name: 'Gabon', code: 'ga' }, { name: 'Ghana', code: 'gh' }, { name: 'Kenya', code: 'gh' }, { name: 'Libye', code: 'ly' }, { name: 'Madagascar', code: 'mg' }, { name: 'Mauritanie', code: 'mr' }, { name: 'Niger', code: 'ne' }, { name: 'Nigéria', code: 'ng' }, { name: 'Ouganda', code: 'ug' }, { name: 'Rwanda', code: 'rw' }, { name: 'Tchad', code: 'td' }, { name: 'Togo', code: 'tg' }
-    ] 
-  },
-  { 
-    continent: '🇪🇺 Europe', 
-    countries: [
-      { name: 'France', code: 'fr' }, { name: 'Italie', code: 'it' }, { name: 'Espagne', code: 'es' }, { name: 'Allemagne', code: 'de' }, { name: 'Belgique', code: 'be' }, { name: 'Suisse', code: 'ch' }, { name: 'Royaume-Uni', code: 'gb' }, { name: 'Portugal', code: 'pt' }, { name: 'Autriche', code: 'at' }, { name: 'Bulgarie', code: 'bg' }, { name: 'Croatie', code: 'bg' }, { name: 'Danemark', code: 'dk' }, { name: 'Finlande', code: 'fi' }, { name: 'Grèce', code: 'gr' }, { name: 'Hongrie', code: 'hu' }, { name: 'Irlande', code: 'ie' }, { name: 'Norvège', code: 'no' }, { name: 'Pays-Bas', code: 'nl' }, { name: 'Pologne', code: 'pl' }, { name: 'République Tchèque', code: 'cz' }, { name: 'Roumanie', code: 'cz' }, { name: 'Serbie', code: 'ro' }, { name: 'Suède', code: 'se' }, { name: 'Turquie', code: 'tr' }, { name: 'Ukraine', code: 'ua' }
-    ] 
-  },
-  { 
-    continent: '🌏 Asie', 
-    countries: [
-      { name: 'Palestine', code: 'ps' }, { name: 'Liban', code: 'lb' }, { name: 'Arabie Saoudite', code: 'sa' }, { name: 'Émirats Arabes Unis', code: 'ae' }, { name: 'Jordanie', code: 'jo' }, { name: 'Qatar', code: 'qa' }, { name: 'Japon', code: 'jp' }, { name: 'Chine', code: 'cn' }, { name: 'Corée du Sud', code: 'kr' }, { name: 'Inde', code: 'in' }, { name: 'Indonésie', code: 'id' }, { name: 'Iran', code: 'ir' }, { name: 'Irak', code: 'ir' }, { name: 'Koweït', code: 'kw' }, { name: 'Malaisie', code: 'my' }, { name: 'Oman', code: 'om' }, { name: 'Pakistan', code: 'pk' }, { name: 'Philippines', code: 'ph' }, { name: 'Singapour', code: 'sg' }, { name: 'Syrie', code: 'sy' }, { name: 'Thaïlande', code: 'th' }, { name: 'Vietnam', code: 'vn' }, { name: 'Yémen', code: 'ye' }
-    ] 
-  },
-  { 
-    continent: '🌎 Amériques', 
-    countries: [
-      { name: 'États-Unis', code: 'us' }, { name: 'Canada', code: 'ca' }, { name: 'Brésil', code: 'br' }, { name: 'Argentine', code: 'ar' }, { name: 'Mexique', code: 'mx' }, { name: 'Chili', code: 'cl' }, { name: 'Colombie', code: 'cl' }, { name: 'Pérou', code: 'pe' }, { name: 'Venezuela', code: 've' }, { name: 'Cuba', code: 've' }, { name: 'Uruguay', code: 've' }, { name: 'Bolivie', code: 'bo' }, { name: 'Paraguay', code: 'py' }, { name: 'Équateur', code: 'ec' }, { name: 'Costa Rica', code: 'cr' }, { name: 'Panama', code: 'pa' }, { name: 'Jamaïque', code: 'jm' }, { name: 'Haïti', code: 'ht' }
-    ] 
-  }
+  { continent: '🌍 Afrique', countries: [ { name: 'Tunisie', code: 'tn' }, { name: 'Algérie', code: 'dz' }, { name: 'Maroc', code: 'ma' }, { name: 'Sénégal', code: 'sn' }, { name: 'Côte d\'Ivoire', code: 'ci' }, { name: 'Égypte', code: 'eg' }, { name: 'Afrique du Sud', code: 'za' }, { name: 'Cameroun', code: 'cm' }, { name: 'Mali', code: 'ml' }, { name: 'Burkina Faso', code: 'bf' }, { name: 'Congo', code: 'cg' }, { name: 'Gabon', code: 'ga' }, { name: 'Ghana', code: 'gh' }, { name: 'Kenya', code: 'ke' }, { name: 'Libye', code: 'ly' }, { name: 'Madagascar', code: 'mg' }, { name: 'Mauritanie', code: 'mr' }, { name: 'Niger', code: 'ne' }, { name: 'Nigéria', code: 'ng' }, { name: 'Ouganda', code: 'ug' }, { name: 'Rwanda', code: 'rw' }, { name: 'Tchad', code: 'td' }, { name: 'Togo', code: 'tg' } ] },
+  { continent: '🇪🇺 Europe', countries: [ { name: 'France', code: 'fr' }, { name: 'Italie', code: 'it' }, { name: 'Espagne', code: 'es' }, { name: 'Allemagne', code: 'de' }, { name: 'Belgique', code: 'be' }, { name: 'Suisse', code: 'ch' }, { name: 'Royaume-Uni', code: 'gb' }, { name: 'Portugal', code: 'pt' }, { name: 'Autriche', code: 'at' }, { name: 'Bulgarie', code: 'bg' }, { name: 'Croatie', code: 'hr' }, { name: 'Danemark', code: 'dk' }, { name: 'Finlande', code: 'fi' }, { name: 'Grèce', code: 'gr' }, { name: 'Hongrie', code: 'hu' }, { name: 'Irlande', code: 'ie' }, { name: 'Norvège', code: 'no' }, { name: 'Pays-Bas', code: 'nl' }, { name: 'Pologne', code: 'pl' }, { name: 'République Tchèque', code: 'cz' }, { name: 'Roumanie', code: 'ro' }, { name: 'Serbie', code: 'rs' }, { name: 'Suède', code: 'se' }, { name: 'Turquie', code: 'tr' }, { name: 'Ukraine', code: 'ua' } ] },
+  { continent: '🌏 Asie', countries: [ { name: 'Palestine', code: 'ps' }, { name: 'Liban', code: 'lb' }, { name: 'Arabie Saoudite', code: 'sa' }, { name: 'Émirats Arabes Unis', code: 'ae' }, { name: 'Jordanie', code: 'jo' }, { name: 'Qatar', code: 'qa' }, { name: 'Japon', code: 'jp' }, { name: 'Chine', code: 'cn' }, { name: 'Corée du Sud', code: 'kr' }, { name: 'Inde', code: 'in' }, { name: 'Indonésie', code: 'id' }, { name: 'Iran', code: 'ir' }, { name: 'Irak', code: 'iq' }, { name: 'Koweït', code: 'kw' }, { name: 'Malaisie', code: 'my' }, { name: 'Oman', code: 'om' }, { name: 'Pakistan', code: 'pk' }, { name: 'Philippines', code: 'ph' }, { name: 'Singapour', code: 'sg' }, { name: 'Syrie', code: 'sy' }, { name: 'Thaïlande', code: 'th' }, { name: 'Vietnam', code: 'vn' }, { name: 'Yémen', code: 'ye' } ] },
+  { continent: '🌎 Amériques', countries: [ { name: 'États-Unis', code: 'us' }, { name: 'Canada', code: 'ca' }, { name: 'Brésil', code: 'br' }, { name: 'Argentine', code: 'ar' }, { name: 'Mexique', code: 'mx' }, { name: 'Chili', code: 'cl' }, { name: 'Colombie', code: 'co' }, { name: 'Pérou', code: 'pe' }, { name: 'Venezuela', code: 've' }, { name: 'Cuba', code: 'cu' }, { name: 'Uruguay', code: 'uy' }, { name: 'Bolivie', code: 'bo' }, { name: 'Paraguay', code: 'py' }, { name: 'Équateur', code: 'ec' }, { name: 'Costa Rica', code: 'cr' }, { name: 'Panama', code: 'pa' }, { name: 'Jamaïque', code: 'jm' }, { name: 'Haïti', code: 'ht' } ] }
 ];
 
 export default function SubmitForeignClub() {
@@ -48,7 +27,9 @@ export default function SubmitForeignClub() {
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const [selectedFlagCode, setSelectedFlagCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [statusMsg, setStatusMsg] = useState('');
+  
+  // NEW: CUSTOM POPUP STATE
+  const [dialog, setDialog] = useState({ isOpen: false, message: '', type: 'error' });
 
   useEffect(() => {
     async function loadUser() {
@@ -72,10 +53,9 @@ export default function SubmitForeignClub() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setStatusMsg('');
 
-    if (!formData.country) return setStatusMsg("Veuillez sélectionner un pays dans la liste.");
-    if (!includeChef && !includePresident) return setStatusMsg("Veuillez remplir les informations pour au moins un Chef des actions ou un Président.");
+    if (!formData.country) return setDialog({ isOpen: true, message: "Veuillez sélectionner un pays dans la liste.", type: 'error' });
+    if (!includeChef && !includePresident) return setDialog({ isOpen: true, message: "Veuillez remplir les informations pour au moins un Chef des actions ou un Président.", type: 'error' });
 
     setIsSubmitting(true);
     
@@ -95,10 +75,10 @@ export default function SubmitForeignClub() {
     const { error } = await supabase.from('foreign_clubs').insert([payload]);
 
     if (error) {
-      setStatusMsg(`Erreur: ${error.message}`);
+      setDialog({ isOpen: true, message: `Erreur: ${error.message}`, type: 'error' });
       setIsSubmitting(false);
     } else {
-      setStatusMsg("Club enregistré avec succès dans la base mondiale !");
+      setDialog({ isOpen: true, message: "Club enregistré avec succès dans la base mondiale !", type: 'success' });
       setTimeout(() => router.push('/dashboard/foreign-clubs/map'), 2000);
     }
   };
@@ -139,38 +119,15 @@ export default function SubmitForeignClub() {
                 <label className="block text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-2">Pays</label>
                 <div className="relative flex items-center">
                   {selectedFlagCode && (
-                    <img 
-                      src={`https://flagcdn.com/24x18/${selectedFlagCode}.png`} 
-                      srcSet={`https://flagcdn.com/48x36/${selectedFlagCode}.png 2x, https://flagcdn.com/72x54/${selectedFlagCode}.png 3x`} 
-                      width="24" 
-                      height="18" 
-                      alt="flag" 
-                      className="absolute left-4 rounded-sm shadow-sm"
-                    />
+                    <img src={`https://flagcdn.com/24x18/${selectedFlagCode}.png`} width="24" height="18" alt="flag" className="absolute left-4 rounded-sm shadow-sm" />
                   )}
-                  <input 
-                    type="text" 
-                    required 
-                    value={countrySearch} 
-                    onChange={e => { setCountrySearch(e.target.value); setShowCountryDropdown(true); setSelectedFlagCode(''); }} 
-                    onFocus={() => setShowCountryDropdown(true)} 
-                    onBlur={() => setTimeout(() => setShowCountryDropdown(false), 200)} 
-                    placeholder="Rechercher un pays..." 
-                    className={`w-full p-4 ${selectedFlagCode ? 'pl-12' : 'pl-4'} bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-amber-500 outline-none font-bold transition-all`} 
-                  />
+                  <input type="text" required value={countrySearch} onChange={e => { setCountrySearch(e.target.value); setShowCountryDropdown(true); setSelectedFlagCode(''); }} onFocus={() => setShowCountryDropdown(true)} onBlur={() => setTimeout(() => setShowCountryDropdown(false), 200)} placeholder="Rechercher un pays..." className={`w-full p-4 ${selectedFlagCode ? 'pl-12' : 'pl-4'} bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-amber-500 outline-none font-bold transition-all`} />
                 </div>
                 {showCountryDropdown && filteredCountries.length > 0 && (
                   <div className="absolute z-50 w-full mt-2 bg-white/95 backdrop-blur-xl border border-slate-200 rounded-2xl shadow-xl max-h-48 overflow-y-auto">
                     {filteredCountries.map(c => (
                       <div key={c.name} onMouseDown={() => handleCountrySelect(c.name, c.code)} className="p-3 flex items-center gap-3 hover:bg-amber-50 cursor-pointer text-sm font-bold text-slate-700">
-                        <img 
-                          src={`https://flagcdn.com/24x18/${c.code}.png`} 
-                          srcSet={`https://flagcdn.com/48x36/${c.code}.png 2x, https://flagcdn.com/72x54/${c.code}.png 3x`} 
-                          width="24" 
-                          height="18" 
-                          alt="flag" 
-                          className="rounded-sm shadow-sm"
-                        />
+                        <img src={`https://flagcdn.com/24x18/${c.code}.png`} width="24" height="18" alt="flag" className="rounded-sm shadow-sm" />
                         {c.name}
                       </div>
                     ))}
@@ -221,10 +178,24 @@ export default function SubmitForeignClub() {
           <button type="submit" disabled={isSubmitting} className="w-full py-4 mt-6 bg-slate-900 text-white font-extrabold rounded-2xl hover:bg-slate-800 transition-all shadow-md hover:-translate-y-0.5 disabled:opacity-50">
             {isSubmitting ? 'Enregistrement...' : 'Enregistrer le Club'}
           </button>
-          
-          {statusMsg && <div className={`p-4 rounded-xl font-bold text-center text-sm shadow-sm border ${statusMsg.includes('succès') ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'}`}>{statusMsg}</div>}
         </form>
       </div>
+
+      {/* CUSTOM UI POPUP MODAL */}
+      {dialog.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-[2rem] p-8 max-w-sm w-full shadow-2xl border border-white/50 text-center">
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 ${dialog.type === 'success' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+              {dialog.type === 'success' ? '✓' : '✕'}
+            </div>
+            <h3 className="text-xl font-extrabold text-slate-900 mb-2">{dialog.type === 'success' ? 'Succès' : 'Attention'}</h3>
+            <p className="text-slate-500 font-medium mb-8 leading-relaxed">{dialog.message}</p>
+            <button onClick={() => setDialog({ isOpen: false, message: '', type: 'error' })} className="w-full py-3.5 bg-slate-900 text-white font-extrabold rounded-xl hover:bg-slate-800 transition-all">
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
