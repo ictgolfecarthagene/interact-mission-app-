@@ -16,13 +16,16 @@ export default function LoginPage() {
 
   const [dialog, setDialog] = useState({ isOpen: false, message: '' });
 
-  // NEW: Session Cache Check
+  // SECURED: Session Check with Server Validation
   useEffect(() => {
     async function checkActiveSession() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
+      // getUser() securely asks the server if the token is still valid (handles deleted accounts & changed passwords)
+      const { data: { user }, error } = await supabase.auth.getUser();
+      
+      if (user && !error) {
         router.push('/dashboard');
       } else {
+        // If there's an error (e.g., password changed, account deleted), the cache is invalid.
         setCheckingSession(false);
       }
     }
