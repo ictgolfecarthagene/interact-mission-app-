@@ -111,6 +111,7 @@ export default function ForeignClubsMap() {
             </ZoomableGroup>
           </ComposableMap>
 
+          {/* MODAL POUR AFFICHER LES CLUBS DU PAYS */}
           {selectedCountry && (
             <div className="absolute top-0 right-0 w-full sm:w-96 h-full bg-white/95 backdrop-blur-xl border-l border-slate-200 shadow-2xl p-6 overflow-y-auto animate-fade-in z-50">
               <div className="flex justify-between items-center mb-6">
@@ -124,15 +125,17 @@ export default function ForeignClubsMap() {
                     <h3 className="font-extrabold text-lg text-slate-900">{club.club_name}</h3>
                     {club.club_ig && <a href={club.club_ig} target="_blank" className="text-xs font-bold text-pink-600 hover:underline">Instagram du Club ↗</a>}
                     
+                    {/* INFO SUBMITTER (VISIBLE SEULEMENT PAR LA MISSION/COMITE) */}
                     {(profile?.role === 'chef_mission_inter' || profile?.role === 'comite_national' || profile?.role === 'super_admin') && (
                       <div className="mt-3 text-[10px] uppercase tracking-widest font-extrabold text-indigo-500 bg-indigo-50 inline-block px-2 py-1 rounded">
-                        Soumis par: {club.profiles?.full_name} ({club.profiles?.club})
+                        Soumis par: {club.profiles?.full_name} {club.profiles?.club ? `(${club.profiles.club})` : ''}
                       </div>
                     )}
 
                     {club.chef_name && (
                       <div className="mt-4 pt-4 border-t border-slate-200">
-                        <p className="text-xs font-extrabold text-slate-500 uppercase">Chef des Actions</p>
+                        {/* TITRE MIS A JOUR ICI */}
+                        <p className="text-xs font-extrabold text-slate-500 uppercase">Chef des Actions Internationales</p>
                         <p className="font-bold text-slate-800">{club.chef_name}</p>
                         <div className="flex flex-wrap gap-2 mt-2">
                           {club.chef_whatsapp && <a href={formatWhatsAppLink(club.chef_whatsapp)} target="_blank" className="px-3 py-1.5 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-lg hover:bg-emerald-200 transition">WhatsApp</a>}
