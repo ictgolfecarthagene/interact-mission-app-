@@ -215,8 +215,28 @@ export default function UserManagementPage() {
               {users.map((u) => (
                 <tr key={u.id} className={`hover:bg-white/50 transition-colors ${selectedUsers.includes(u.id) ? 'bg-indigo-50/30' : ''}`}>
                   <td className="p-5"><input type="checkbox" checked={selectedUsers.includes(u.id)} onChange={() => handleSelectUser(u.id)} className="w-4 h-4 rounded text-indigo-600 cursor-pointer" /></td>
-                  <td className="p-5"><p className="font-bold text-slate-900">{u.full_name}</p><p className="text-xs font-medium text-slate-500">{u.email}</p></td>
-                  <td className="p-5"><span className={`px-3 py-1 rounded-lg text-[10px] font-extrabold uppercase border ${u.role === 'chef_club' ? 'bg-indigo-50 text-indigo-700' : 'bg-teal-50 text-teal-700'}`}>{u.role.replace(/_/g, ' ')}</span><p className="text-xs text-slate-500 mt-1 font-semibold">{u.poste}</p></td>
+                  <td className="p-5">
+                    <p className="font-bold text-slate-900">{u.full_name}</p>
+                    <p className="text-xs font-medium text-slate-500">{u.email}</p>
+                  </td>
+                  
+                  <td className="p-5">
+                    {u.email === 'yessinebenfraj106@gmail.com' ? (
+                      // EXCLUSIF TOP ADMIN : Badge noir et pas de texte en dessous
+                      <span className="px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase border bg-slate-900 text-white border-slate-900 shadow-sm">
+                        TOP ADMIN
+                      </span>
+                    ) : (
+                      // AFFICHAGE NORMAL POUR TOUS LES AUTRES
+                      <>
+                        <span className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase border ${u.role === 'chef_club' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : 'bg-teal-50 text-teal-700 border-teal-100'}`}>
+                          {u.role === 'chef_mission_inter' ? 'Mission Inter' : u.role.replace(/_/g, ' ')}
+                        </span>
+                        <p className="text-xs text-slate-500 mt-2 font-semibold">{u.poste}</p>
+                      </>
+                    )}
+                  </td>
+                  
                   <td className="p-5 font-bold text-slate-700">{u.club || '—'}</td>
                   <td className="p-5">{u.is_verified ? <span className="px-3 py-1 bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-full text-xs font-bold">Validé</span> : <span className="px-3 py-1 bg-amber-100 text-amber-700 border border-amber-200 rounded-full text-xs font-bold">En attente</span>}</td>
                   <td className="p-5 text-right space-x-2">
