@@ -6,8 +6,8 @@ import Link from 'next/link';
 import ApproveButton from '@/components/ApproveButton';
 import { bulkApproveMembers } from '@/app/actions/admin';
 
-const CLUBS = ["IC Tunis Medina", "IC Mirabel Tunis", "IC North Africa", "IC Pilote Ariana", "IC Bloom City", "IC Big South Tunis", "IC Tunis Cosmopolitan", "IC Tunis Doyen", "IC Tunis Inner City", "IC Tunis El Bey", "IC Anastasia", "IC Ennaser", "IC Tunis Golden Eagles", "IC Rey De Carthago", "IC Tinast Glory", "IC Didon Amilcar", "IC Tunis Golfe", "IC Opportunity", "IC Aquatic North", "IC Tunis Moon City", "IC Tunis Les Berges Du Lac", "IC Tunis Hannibal", "IC Amilcar Sidibousaid", "IC Sidibousaid", "IC Tunis César", "IC Carthage La Renaissance", "IC Tunis Belvédère", "IC Ariana Tines", "IC Ariana La Rose", "IC Saint Germain", "IC Maxula Prates", "IC Tunis Golfe Carthagène", "IC Megrine", "IC Tunis Amilcar", "IC Hammam Lif", "IC Boumhel El Bassatine", "IC Hammamet", "IC Nabeul Neapolis", "IC Graces El Mourouj", "IC Pragma Sousse", "IC Sousse", "IC Kairouan", "IC Ruspina Monastir", "IC Monastir Zone Sud", "IC Sfax Doyen", "IC Sfax Métropole", "IC Sfax Flambeau", "IC Sfax Sindbad", "IC Sfax Tamaris", "IC Gabes Oasis", "IC Djerba Flamingo"];
-const POSTS_NATIONAUX = ["Coordinateur", "Vice coordinateur", "Secretaire nationale", "Secretaire adj", "Chef du protocole nationale", "Chef du protocole adj", "Tresorier nationale", "Tresorier adj"];
+const CLUBS = ["IC Tunis Medina", "IC Mirabel Tunis", "IC North Africa", "IC Pilote Ariana", "IC Bloom City", "IC Big South Tunis", "IC Tunis Cosmopolitan", "IC Tunis Doyen", "IC Tunis Inner City", "IC Tunis El Bey", "IC Anastasia", "IC Ennaser", "IC Tunis Golden Eagles", "IC Rey De Carthago", "IC Tinast Glory", "IC Didon Amilcar", "IC Tunis Golfe", "IC Opportunity", "IC Aquatic North", "IC Tunis Moon City", "IC Tunis Les Berges Du Lac", "IC Tunis Hannibal", "IC Amilcar Sidibousaid", "IC Sidibousaid", "IC Tunis César", "IC Carthage La Renaissance", "IC Tunis Belvédère", "IC Ariana Tines", "IC Ariana La Rose", "IC Saint Germain", "IC Maxula Prates", "IC Tunis Golfe Carthagène", "IC Megrine", "IC Tunis Amilcar", "IC Hammam Lif", "IC Hammamet", "IC Nabeul Neapolis", "IC Graces El Mourouj", "IC Pragma Sousse", "IC Sousse", "IC Kairouan", "IC Ruspina Monastir", "IC Monastir Zone Sud", "IC Sfax Doyen", "IC Sfax Métropole", "IC Sfax Flambeau", "IC Sfax Sindbad", "IC Sfax Tamaris"];
+const POSTS_NATIONAUX = ["Coordinatrice Nationale", "Vice Coordinatrice", "Protocole Nationale", "Protocole Nationale Adjointe", "Secrétaire Nationale", "Secrétaire Nationale Adjointe", "Trésorière Nationale"];
 
 export default function UserManagementPage() {
   const [users, setUsers] = useState([]);
@@ -27,7 +27,6 @@ export default function UserManagementPage() {
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
 
-  // NEW: State for Custom Popup Dialog
   const [dialog, setDialog] = useState({ isOpen: false, isConfirm: false, title: '', message: '', type: 'danger', confirmText: '', onConfirm: null });
 
   useEffect(() => {
@@ -64,7 +63,6 @@ export default function UserManagementPage() {
     }
   };
 
-  // REPLACED window.confirm
   const promptBulkApprove = () => {
     setDialog({
       isOpen: true, isConfirm: true, title: 'Approbation Multiple', message: `Voulez-vous approuver l'accès de ${selectedUsers.length} utilisateur(s) ?`, type: 'success', confirmText: 'Approuver',
@@ -83,7 +81,6 @@ export default function UserManagementPage() {
     });
   };
 
-  // REPLACED window.confirm
   const promptBulkDelete = () => {
     setDialog({
       isOpen: true, isConfirm: true, title: 'Suppression Multiple', message: `Attention ! Voulez-vous supprimer définitivement ${selectedUsers.length} utilisateur(s) ? Cette action est irréversible.`, type: 'danger', confirmText: 'Supprimer',
@@ -155,7 +152,6 @@ export default function UserManagementPage() {
     }
   };
 
-  // REPLACED window.confirm
   const promptDelete = (id, name) => {
     setDialog({
       isOpen: true, isConfirm: true, title: 'Confirmer la suppression', message: `Êtes-vous sûr de vouloir supprimer définitivement le profil de ${name} ?`, type: 'danger', confirmText: 'Supprimer',

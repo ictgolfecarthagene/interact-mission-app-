@@ -13,8 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Plateforme Mission Interna",
-  description: "Crée par Yessine Ben Fraj",
+  title: "Plateforme Mission Des Actions Internationales",
 };
 
 export default function RootLayout({

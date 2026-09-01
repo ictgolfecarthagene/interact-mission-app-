@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-const CLUBS = ["IC Tunis Medina", "IC Mirabel Tunis", "IC North Africa", "IC Pilote Ariana", "IC Bloom City", "IC Big South Tunis", "IC Tunis Cosmopolitan", "IC Tunis Doyen", "IC Tunis Inner City", "IC Tunis El Bey", "IC Anastasia", "IC Ennaser", "IC Tunis Golden Eagles", "IC Rey De Carthago", "IC Tinast Glory", "IC Didon Amilcar", "IC Tunis Golfe", "IC Opportunity", "IC Aquatic North", "IC Tunis Moon City", "IC Tunis Les Berges Du Lac", "IC Tunis Hannibal", "IC Amilcar Sidibousaid", "IC Sidibousaid", "IC Tunis César", "IC Carthage La Renaissance", "IC Tunis Belvédère", "IC Ariana Tines", "IC Ariana La Rose", "IC Saint Germain", "IC Maxula Prates", "IC Tunis Golfe Carthagène", "IC Megrine", "IC Tunis Amilcar", "IC Hammam Lif", "IC Boumhel El Bassatine", "IC Hammamet", "IC Nabeul Neapolis", "IC Graces El Mourouj", "IC Pragma Sousse", "IC Sousse", "IC Kairouan", "IC Ruspina Monastir", "IC Monastir Zone Sud", "IC Sfax Doyen", "IC Sfax Métropole", "IC Sfax Flambeau", "IC Sfax Sindbad", "IC Sfax Tamaris", "IC Gabes Oasis", "IC Djerba Flamingo"];
+const CLUBS = ["IC Tunis Medina", "IC Mirabel Tunis", "IC North Africa", "IC Pilote Ariana", "IC Bloom City", "IC Big South Tunis", "IC Tunis Cosmopolitan", "IC Tunis Doyen", "IC Tunis Inner City", "IC Tunis El Bey", "IC Anastasia", "IC Ennaser", "IC Tunis Golden Eagles", "IC Rey De Carthago", "IC Tinast Glory", "IC Didon Amilcar", "IC Tunis Golfe", "IC Opportunity", "IC Aquatic North", "IC Tunis Moon City", "IC Tunis Les Berges Du Lac", "IC Tunis Hannibal", "IC Amilcar Sidibousaid", "IC Sidibousaid", "IC Tunis César", "IC Carthage La Renaissance", "IC Tunis Belvédère", "IC Ariana Tines", "IC Ariana La Rose", "IC Saint Germain", "IC Maxula Prates", "IC Tunis Golfe Carthagène", "IC Megrine", "IC Tunis Amilcar", "IC Hammam Lif", "IC Hammamet", "IC Nabeul Neapolis", "IC Graces El Mourouj", "IC Pragma Sousse", "IC Sousse", "IC Kairouan", "IC Ruspina Monastir", "IC Monastir Zone Sud", "IC Sfax Doyen", "IC Sfax Métropole", "IC Sfax Flambeau", "IC Sfax Sindbad", "IC Sfax Tamaris"];
 
 export default function DashboardHome() {
   const [profile, setProfile] = useState(null);
@@ -23,7 +23,6 @@ export default function DashboardHome() {
       if (user.email !== 'yessinebenfraj106@gmail.com') {
         setViewMode(data.role); 
       } else {
-        // God Mode: Load simulated club
         const savedClub = localStorage.getItem('god_mode_club');
         if (savedClub) setSimulatedClub(savedClub);
         else {
@@ -49,13 +48,11 @@ export default function DashboardHome() {
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 sm:p-8 relative font-sans overflow-hidden flex flex-col">
-      
       <div className="fixed top-[-10%] left-[-10%] w-[500px] h-[500px] bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob z-0 pointer-events-none"></div>
       <div className="fixed top-[-10%] right-[-10%] w-[500px] h-[500px] bg-teal-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000 z-0 pointer-events-none"></div>
 
       <div className="max-w-6xl mx-auto w-full space-y-8 relative z-10 flex flex-col flex-1">
         
-        {/* VIEW MODE SWITCHER (ONLY FOR YOU) */}
         {isGodMode && (
           <div className="bg-red-50 border border-red-200 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-center shadow-sm gap-4">
             <span className="text-red-800 font-extrabold text-sm flex items-center gap-2">👑 GOD MODE ACTIF</span>
@@ -72,7 +69,6 @@ export default function DashboardHome() {
                 <option value="super_admin">TOUT VOIR</option>
               </select>
               
-              {/* TARGET CLUB SELECTOR */}
               {viewMode === 'chef_club' && (
                 <select 
                   value={simulatedClub} 
@@ -93,7 +89,7 @@ export default function DashboardHome() {
           <div><h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Tableau de Bord Central</h1></div>
           <div className="flex items-center gap-6">
             <div className="hidden md:block text-right">
-              <p className="font-bold text-slate-900 text-lg">{isGodMode ? 'Yessine Ben Fraj (Admin)' : profile?.full_name}</p>
+              <p className="font-bold text-slate-900 text-lg">{isGodMode ? 'Yessine Ben Fraj' : profile?.full_name}</p>
               <p className="text-sm font-medium text-slate-500">{isGodMode ? 'Top Admin' : profile?.poste} {!isGodMode && profile?.role === 'chef_club' && profile?.club && <span className="text-indigo-600 font-bold"> • {profile.club}</span>}</p>
             </div>
             <div className="h-14 w-14 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-md flex items-center justify-center font-extrabold text-xl shrink-0 ring-2 ring-indigo-100">{getInitials(profile?.full_name)}</div>

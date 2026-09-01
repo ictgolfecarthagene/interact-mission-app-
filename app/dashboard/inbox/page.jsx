@@ -19,7 +19,6 @@ export default function InboxPage() {
   const [remarqueInputs, setRemarqueInputs] = useState({});
   const router = useRouter();
 
-  // Custom UI Dialog for errors (replaces browser alert)
   const [dialog, setDialog] = useState({ isOpen: false, message: '' });
 
   useEffect(() => {
@@ -48,7 +47,6 @@ export default function InboxPage() {
     loadData();
   }, [router]);
 
-  // Auto-scroll chat
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -67,12 +65,10 @@ export default function InboxPage() {
     router.refresh();
   };
 
-  // AUTO-ARCHIVE APPLIED HERE
   const handleSaveRemarque = async (actionId) => {
     const text = remarqueInputs[actionId];
     if (!text) return;
     
-    // Optimistic UI: Apply remarque AND archive immediately
     setActions(actions.map(a => a.id === actionId ? { ...a, remarque: text, archived: true } : a)); 
     setRemarqueInputs({...remarqueInputs, [actionId]: ''});
     
@@ -80,7 +76,6 @@ export default function InboxPage() {
     if (!result.success) {
       setDialog({ isOpen: true, message: `Erreur: ${result.error}` });
     } else {
-      // Toggle archive in DB as well
       await toggleArchiveAction(actionId, true);
     }
     router.refresh();
@@ -110,9 +105,8 @@ export default function InboxPage() {
   };
 
   const handleKeyDown = (e) => {
-    // If Enter is pressed without Shift, send the message (Mobile & PC)
     if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault(); // Prevents a new line from being drawn
+      e.preventDefault();
       if (replyText.trim()) handleReply();
     }
   };
@@ -182,18 +176,6 @@ export default function InboxPage() {
             </div>
           </div>
         </div>
-
-        {/* CUSTOM UI POPUP MODAL (ERRORS) */}
-        {dialog.isOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
-            <div className="bg-white rounded-[2rem] p-8 max-w-sm w-full shadow-2xl border border-white/50 text-center">
-              <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 bg-red-100 text-red-600">✕</div>
-              <h3 className="text-xl font-extrabold text-slate-900 mb-2">Attention</h3>
-              <p className="text-slate-500 font-medium mb-8 leading-relaxed">{dialog.message}</p>
-              <button onClick={() => setDialog({ isOpen: false, message: '' })} className="w-full py-3.5 bg-slate-900 text-white font-extrabold rounded-xl hover:bg-slate-800 transition-all shadow-md">Fermer</button>
-            </div>
-          </div>
-        )}
       </div>
     );
   }
@@ -207,7 +189,11 @@ export default function InboxPage() {
         <div className="bg-white/70 backdrop-blur-2xl p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/50 flex flex-col md:flex-row justify-between items-center gap-4">
           <div><Link href="/dashboard" className="text-sm font-bold text-indigo-600 hover:text-indigo-800 transition mb-1 inline-block">← Retour au hub</Link><h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Boîte de Réception Centrale</h1></div>
           <div className="flex items-center gap-4">
-            <div className="text-right hidden sm:block"><p className="font-bold text-slate-900">{profile.full_name}</p><p className="text-sm text-slate-500 font-medium">{profile.email === 'yessinebenfraj106@gmail.com' ? 'Top Admin' : profile.poste}</p></div>
+            <div className="text-right hidden sm:block">
+              <p className="font-bold text-slate-900">{profile.full_name}</p>
+              {/* ADMIN ROLE LABEL FIXED */}
+              <p className="text-sm text-slate-500 font-medium">{profile.email === 'yessinebenfraj106@gmail.com' ? 'Top Admin' : profile.poste}</p>
+            </div>
             <div className="h-14 w-14 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 text-white flex items-center justify-center font-extrabold text-xl shadow-md ring-2 ring-indigo-100">{getInitials(profile.full_name)}</div>
           </div>
         </div>
@@ -284,6 +270,7 @@ export default function InboxPage() {
                       <div key={idx} className={`flex ${isMyMessage ? 'justify-end' : 'justify-start'}`}>
                         <div className={`max-w-[85%] p-4 rounded-2xl shadow-sm ${isMyMessage ? 'bg-indigo-600 text-white rounded-tr-sm' : 'bg-white/90 backdrop-blur-md border border-slate-200/50 text-slate-800 rounded-tl-sm'}`}>
                           
+                          {/* SENDER LABEL (CLUB MEMBERS VS TOP ADMIN / MISSION) */}
                           {!isMyMessage && (
                             <p className="text-[10px] font-extrabold uppercase text-slate-500 mb-1 opacity-80">
                               {msg.profiles?.full_name || 'Membre du club'}
@@ -318,8 +305,7 @@ export default function InboxPage() {
           </div>
         </div>
       </div>
-      
-      {/* CUSTOM UI POPUP MODAL (ERRORS) */}
+
       {dialog.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
           <div className="bg-white rounded-[2rem] p-8 max-w-sm w-full shadow-2xl border border-white/50 text-center">
